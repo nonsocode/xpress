@@ -3,10 +3,13 @@ package parser
 const (
 	// Single-character tokens.
 	EOF TokenType = iota
+	ERROR
 	LEFT_PAREN
 	RIGHT_PAREN
 	LEFT_BRACE
 	RIGHT_BRACE
+	PERCENT
+	COLON
 	COMMA
 	DOT
 	MINUS
@@ -24,10 +27,13 @@ const (
 	GREATER_EQUAL
 	LESS
 	LESS_EQUAL
+	TEMPLATE_LEFT_BRACE
+	TEMPLATE_RIGHT_BRACE
 	// Literals.
 	IDENTIFIER
 	STRING
 	NUMBER
+	TEXT
 	// Keywords.
 	AND
 	FALSE

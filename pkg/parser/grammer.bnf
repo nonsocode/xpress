@@ -8,12 +8,14 @@ comparison        → term ( ( GREATER | GREATER_EQUAL | LESS | LESS_EQUAL ) ter
 term              → factor ( ( MINUS | PLUS ) factor )* ;
 factor            → unary ( ( SLASH | STAR ) unary )* ;
 unary             → ( BANG | MINUS ) unary | primary ;
-primary           → NUMBER | STRING | TRUE | FALSE | NIL | LPAREN expression RPAREN | IDENTIFIER | functionCall ;
-functionCall      → IDENTIFIER LPAREN arguments? RPAREN ;
+access            → primary ( accessRest )* ;
+accessRest        → DOT IDENTIFIER | functionCall ;
+functionCall      → LPAREN arguments? RPAREN ;
+primary           → number | string | TRUE | FALSE | NIL | LPAREN expression RPAREN | IDENTIFIER
 arguments         → expression ( COMMA expression )* ;
 IDENTIFIER        → LETTER ( LETTER | DIGIT )* ;
-NUMBER            → DIGIT+ ( DOT DIGIT+ )? ;
-STRING            → ((DQUOTE characters? DQUOTE) | (SQUOTE characters? SQUOTE)) ;
+number            → DIGIT+ ( DOT DIGIT+ )? ;
+string            → (DQUOTE characters? DQUOTE) ;
 characters        → ( escape | char )* ;
 escape            → "\\" char ;
 LETTER            → [a-zA-Z] ;
