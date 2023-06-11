@@ -105,3 +105,42 @@ func TestNestedCallsAndChaining(t *testing.T) {
 		{lexeme: "", tokenType: EOF},
 	}, lex.tokens)
 }
+
+func TestTernary(t *testing.T) {
+	lex := NewLexer(`{{foo ? bar : baz}}`)
+	lex.run()
+	assert.Equal(t, []Token{
+		{lexeme: "{{", tokenType: TEMPLATE_LEFT_BRACE},
+		{lexeme: "foo", tokenType: IDENTIFIER},
+		{lexeme: "?", tokenType: QMARK},
+		{lexeme: "bar", tokenType: IDENTIFIER},
+		{lexeme: ":", tokenType: COLON},
+		{lexeme: "baz", tokenType: IDENTIFIER},
+		{lexeme: "}}", tokenType: TEMPLATE_RIGHT_BRACE},
+		{lexeme: "", tokenType: EOF},
+	}, lex.tokens)
+}
+
+func TestTernaryWithFunctionCalls(t *testing.T) {
+	lex := NewLexer(`{{foo(bar) ? baz(qux) : quux(true)}}`)
+	lex.run()
+	assert.Equal(t, []Token{
+		{lexeme: "{{", tokenType: TEMPLATE_LEFT_BRACE},
+		{lexeme: "foo", tokenType: IDENTIFIER},
+		{lexeme: "(", tokenType: LEFT_PAREN},
+		{lexeme: "bar", tokenType: IDENTIFIER},
+		{lexeme: ")", tokenType: RIGHT_PAREN},
+		{lexeme: "?", tokenType: QMARK},
+		{lexeme: "baz", tokenType: IDENTIFIER},
+		{lexeme: "(", tokenType: LEFT_PAREN},
+		{lexeme: "qux", tokenType: IDENTIFIER},
+		{lexeme: ")", tokenType: RIGHT_PAREN},
+		{lexeme: ":", tokenType: COLON},
+		{lexeme: "quux", tokenType: IDENTIFIER},
+		{lexeme: "(", tokenType: LEFT_PAREN},
+		{lexeme: "true", tokenType: TRUE},
+		{lexeme: ")", tokenType: RIGHT_PAREN},
+		{lexeme: "}}", tokenType: TEMPLATE_RIGHT_BRACE},
+		{lexeme: "", tokenType: EOF},
+	}, lex.tokens)
+}

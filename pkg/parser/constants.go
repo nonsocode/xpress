@@ -29,15 +29,16 @@ const (
 	LESS_EQUAL
 	TEMPLATE_LEFT_BRACE
 	TEMPLATE_RIGHT_BRACE
+	AND
+	OR
 	// Literals.
 	IDENTIFIER
 	STRING
 	NUMBER
 	TEXT
 	// Keywords.
-	AND
+	_keywordStart
 	FALSE
 	TRUE
 	NIL
-	OR
 )

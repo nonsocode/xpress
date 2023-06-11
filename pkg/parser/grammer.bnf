@@ -1,5 +1,4 @@
-template          → valueTemplate | mixedTemplate ;
-mixedTemplate     → ( valueTemplate | TEXT )* ;
+template          → ( valueTemplate | TEXT )* ;
 valueTemplate     → TEMPLATE_START expression TEMPLATE_END ;
 expression        → ternary ;
 ternary           → equality ( QMARK expression COLON expression )? ;
@@ -7,13 +6,11 @@ equality          → comparison ( ( BANG_EQUAL | EQUAL_EQUAL ) comparison )* ;
 comparison        → term ( ( GREATER | GREATER_EQUAL | LESS | LESS_EQUAL ) term )* ;
 term              → factor ( ( MINUS | PLUS ) factor )* ;
 factor            → unary ( ( SLASH | STAR ) unary )* ;
-unary             → ( BANG | MINUS ) unary | primary ;
-access            → primary ( accessRest )* ;
-accessRest        → DOT IDENTIFIER | functionCall ;
-functionCall      → LPAREN arguments? RPAREN ;
-primary           → number | string | TRUE | FALSE | NIL | LPAREN expression RPAREN | IDENTIFIER
+unary             → ( BANG | MINUS ) unary | call ;
+call              → primary ( LPAREN arguments? RPAREN | DOT identifier )* ;
+primary           → number | string | TRUE | FALSE | NIL | identifier | LPAREN expression RPAREN 
 arguments         → expression ( COMMA expression )* ;
-IDENTIFIER        → LETTER ( LETTER | DIGIT )* ;
+identifier        → LETTER ( LETTER | DIGIT )* ;
 number            → DIGIT+ ( DOT DIGIT+ )? ;
 string            → (DQUOTE characters? DQUOTE) ;
 characters        → ( escape | char )* ;

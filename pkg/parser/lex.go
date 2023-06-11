@@ -16,6 +16,14 @@ const (
 	alphaNumeric = alpha + digit
 )
 
+var keywords = map[string]TokenType{
+	"and":   AND,
+	"or":    OR,
+	"false": FALSE,
+	"true":  TRUE,
+	"nil":   NIL,
+}
+
 type Token struct {
 	lexeme    string
 	tokenType TokenType
@@ -182,7 +190,7 @@ func lexInsideAction(l *Lexer) stateFn {
 			l.addToken(COMMA)
 		case '.':
 			l.addToken(DOT)
-			return lexField
+			return lexIdent
 		case '-':
 			l.addToken(MINUS)
 		case '+':
@@ -242,14 +250,14 @@ func lexInsideAction(l *Lexer) stateFn {
 
 		default:
 			if isAlphaNumeric(c) {
-				return lexField
+				return lexIdent
 			}
 			return l.errorf("illegal character")
 		}
 	}
 }
 
-func lexField(l *Lexer) stateFn {
+func lexIdent(l *Lexer) stateFn {
 	var r rune
 	for {
 		r = l.next()
@@ -261,7 +269,12 @@ func lexField(l *Lexer) stateFn {
 	if !l.atTerminator() {
 		return l.errorf("bad character %#U", r)
 	}
-	l.addToken(IDENTIFIER)
+	word := l.source[l.start:l.current]
+	if keywords[word] > _keywordStart {
+		l.addToken(keywords[word])
+	} else {
+		l.addToken(IDENTIFIER)
+	}
 	return lexInsideAction
 }
 
