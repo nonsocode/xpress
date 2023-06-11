@@ -53,3 +53,55 @@ func TestArithmetic(t *testing.T) {
 		{lexeme: "", tokenType: EOF},
 	}, lex.tokens)
 }
+
+func TestIdentifiers(t *testing.T) {
+	lex := NewLexer(`{{foo.bar}}`)
+	lex.run()
+	assert.Equal(t, []Token{
+		{lexeme: "{{", tokenType: TEMPLATE_LEFT_BRACE},
+		{lexeme: "foo", tokenType: IDENTIFIER},
+		{lexeme: ".", tokenType: DOT},
+		{lexeme: "bar", tokenType: IDENTIFIER},
+		{lexeme: "}}", tokenType: TEMPLATE_RIGHT_BRACE},
+		{lexeme: "", tokenType: EOF},
+	}, lex.tokens)
+}
+
+func TestFunctionCalls(t *testing.T) {
+	lex := NewLexer(`{{foo(bar, "shift")}}`)
+	lex.run()
+	assert.Equal(t, []Token{
+		{lexeme: "{{", tokenType: TEMPLATE_LEFT_BRACE},
+		{lexeme: "foo", tokenType: IDENTIFIER},
+		{lexeme: "(", tokenType: LEFT_PAREN},
+		{lexeme: "bar", tokenType: IDENTIFIER},
+		{lexeme: ",", tokenType: COMMA},
+		{lexeme: "\"shift\"", tokenType: STRING},
+		{lexeme: ")", tokenType: RIGHT_PAREN},
+		{lexeme: "}}", tokenType: TEMPLATE_RIGHT_BRACE},
+		{lexeme: "", tokenType: EOF},
+	}, lex.tokens)
+}
+
+func TestNestedCallsAndChaining(t *testing.T) {
+	lex := NewLexer(`{{foo(bar(baz), "shift").qux + 1}}`)
+	lex.run()
+	assert.Equal(t, []Token{
+		{lexeme: "{{", tokenType: TEMPLATE_LEFT_BRACE},
+		{lexeme: "foo", tokenType: IDENTIFIER},
+		{lexeme: "(", tokenType: LEFT_PAREN},
+		{lexeme: "bar", tokenType: IDENTIFIER},
+		{lexeme: "(", tokenType: LEFT_PAREN},
+		{lexeme: "baz", tokenType: IDENTIFIER},
+		{lexeme: ")", tokenType: RIGHT_PAREN},
+		{lexeme: ",", tokenType: COMMA},
+		{lexeme: "\"shift\"", tokenType: STRING},
+		{lexeme: ")", tokenType: RIGHT_PAREN},
+		{lexeme: ".", tokenType: DOT},
+		{lexeme: "qux", tokenType: IDENTIFIER},
+		{lexeme: "+", tokenType: PLUS},
+		{lexeme: "1", tokenType: NUMBER},
+		{lexeme: "}}", tokenType: TEMPLATE_RIGHT_BRACE},
+		{lexeme: "", tokenType: EOF},
+	}, lex.tokens)
+}
