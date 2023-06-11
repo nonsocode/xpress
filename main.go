@@ -8,10 +8,11 @@ import (
 
 func main() {
 
-	regularPrinter := parser.ASTPrinter{}
 	evaluator := parser.Evaluator{}
-	fmt.Println(parser.NewParser("-123  (45.67)").Parse(&evaluator))
-	fmt.Println(parser.NewParser("-123  (45.67)").Parse(&regularPrinter))
-	fmt.Println(parser.NewParser("6 * (4 + 2)").Parse(&evaluator))
+	template1 := "hehe{{-123 * (45.67) }}"
+	template2 := `{{ 3 * 3 }} withot spaces is {{ true ? "changed" : "not changed" }}`
+	fmt.Println(parser.NewParser("-hello world").Parse(&evaluator))
+	fmt.Println(parser.NewParser(template1).Parse(&evaluator))
+	fmt.Println(parser.NewParser(template2).Parse(&evaluator))
 	// ...
 }

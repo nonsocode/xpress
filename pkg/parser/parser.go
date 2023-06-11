@@ -5,62 +5,8 @@ import (
 	"strconv"
 )
 
-// Grammar:
-// template          → ( valueTemplate | TEXT )* ;
-// valueTemplate     → TEMPLATE_START expression TEMPLATE_END ;
-// expression        → ternary ;
-// ternary           → equality ( QMARK expression COLON expression )? ;
-// equality          → comparison ( ( BANG_EQUAL | EQUAL_EQUAL ) comparison )* ;
-// comparison        → term ( ( GREATER | GREATER_EQUAL | LESS | LESS_EQUAL ) term )* ;
-// term              → factor ( ( MINUS | PLUS ) factor )* ;
-// factor            → unary ( ( SLASH | STAR ) unary )* ;
-// unary             → ( BANG | MINUS ) unary | call ;
-// call              → primary ( LPAREN arguments? RPAREN | DOT identifier )* ;
-// primary           → number | string | TRUE | FALSE | NIL | identifier | LPAREN expression RPAREN
-// arguments         → expression ( COMMA expression )* ;
-// identifier        → LETTER ( LETTER | DIGIT )* ;
-// number            → DIGIT+ ( DOT DIGIT+ )? ;
-// string            → (DQUOTE characters? DQUOTE) ;
-// characters        → ( escape | char )* ;
-// escape            → "\\" char ;
-// LETTER            → [a-zA-Z] ;
-// DIGIT             → [0-9] ;
-// TEMPLATE_START    → "{{" ;
-// TEMPLATE_END      → "}}" ;
-// QMARK             → "?" ;
-// COLON             → ":" ;
-// COMMA             → "," ;
-// DOT               → "." ;
-// EQUAL             → "=" ;
-// BANG              → "!" ;
-// MINUS             → "-" ;
-// PLUS              → "+" ;
-// DQUOTE            → "\"" ;
-// SQUOTE            → "\'" ;
-// SLASH             → "/" ;
-// STAR              → "*" ;
-// LPAREN            → "(" ;
-// RPAREN            → ")" ;
-// EQUAL_EQUAL       → "==" ;
-// BANG_EQUAL        → "!=" ;
-// GREATER           → ">" ;
-// GREATER_EQUAL     → ">=" ;
-// LESS              → "<" ;
-// LESS_EQUAL        → "<=" ;
-// TRUE              → "true" ;
-// FALSE             → "false" ;
-// NIL               → "nil" ;
-// TEXT              → [^\{\}]+ ;
-// char              → [^\"] ;
-
 type Expr interface {
-	// Expr is an interface that all expressions implement.
-	// It has an accept method that takes a visitor interface.
-	// The visitor interface has a visit method for each of the expression classes.
-	// The accept method calls the visit method for the expression’s class.
-	// The visit method then calls the accept method on the expression’s children.
-	// This is the essence of the Visitor pattern.
-	accept(v Visitor) interface{}
+	accept(v Visitor) (interface{}, error)
 }
 
 type Binary struct {
@@ -73,7 +19,7 @@ func NewBinary(left Expr, operator Token, right Expr) *Binary {
 	return &Binary{left: left, operator: operator, right: right}
 }
 
-func (b *Binary) accept(v Visitor) interface{} {
+func (b *Binary) accept(v Visitor) (interface{}, error) {
 	return v.visitBinaryExpr(b)
 }
 
@@ -85,7 +31,7 @@ func NewGrouping(expression Expr) *Grouping {
 	return &Grouping{expression: expression}
 }
 
-func (g *Grouping) accept(v Visitor) interface{} {
+func (g *Grouping) accept(v Visitor) (interface{}, error) {
 	return v.visitGroupingExpr(g)
 }
 
@@ -98,7 +44,7 @@ func NewLiteral(value interface{}, raw string) *Literal {
 	return &Literal{value: value, raw: raw}
 }
 
-func (l *Literal) accept(v Visitor) interface{} {
+func (l *Literal) accept(v Visitor) (interface{}, error) {
 	return v.visitLiteralExpr(l)
 }
 
@@ -111,7 +57,7 @@ func NewUnary(operator Token, right Expr) *Unary {
 	return &Unary{operator: operator, right: right}
 }
 
-func (u *Unary) accept(v Visitor) interface{} {
+func (u *Unary) accept(v Visitor) (interface{}, error) {
 	return v.visitUnaryExpr(u)
 }
 
@@ -123,7 +69,7 @@ func NewTemplate(expressions []Expr) *Template {
 	return &Template{expressions: expressions}
 }
 
-func (t *Template) accept(v Visitor) interface{} {
+func (t *Template) accept(v Visitor) (interface{}, error) {
 	return v.visitTemplateExpr(t)
 }
 
@@ -138,7 +84,7 @@ func NewParser(source string) *Parser {
 	return &Parser{tokens: tokens, current: 0}
 }
 
-func (p *Parser) Parse(i Interpreter) interface{} {
+func (p *Parser) Parse(i Interpreter) (interface{}, error) {
 	return i.interpret(p.template())
 }
 
@@ -164,7 +110,7 @@ func NewTernary(condition Expr, trueExpr Expr, falseExpr Expr) *Ternary {
 	return &Ternary{condition: condition, trueExpr: trueExpr, falseExpr: falseExpr}
 }
 
-func (t *Ternary) accept(v Visitor) interface{} {
+func (t *Ternary) accept(v Visitor) (interface{}, error) {
 	return v.visitTernaryExpr(t)
 }
 
@@ -244,7 +190,7 @@ func NewGet(object Expr, name Token) *Get {
 	return &Get{object: object, name: name}
 }
 
-func (g *Get) accept(v Visitor) interface{} {
+func (g *Get) accept(v Visitor) (interface{}, error) {
 	return v.visitGetExpr(g)
 }
 
@@ -258,7 +204,7 @@ func NewCall(callee Expr, paren Token, arguments []Expr) *Call {
 	return &Call{callee: callee, paren: paren, arguments: arguments}
 }
 
-func (c *Call) accept(v Visitor) interface{} {
+func (c *Call) accept(v Visitor) (interface{}, error) {
 	return v.visitCallExpr(c)
 }
 
@@ -299,10 +245,14 @@ func (p *Parser) primary() Expr {
 	if p.match(NIL) {
 		return NewLiteral(nil, "nil")
 	}
-	if p.match(NUMBER, STRING) {
+	if p.match(NUMBER) {
 		num, _ := strconv.ParseFloat(p.previous().lexeme, 64)
 
 		return NewLiteral(num, p.previous().lexeme)
+	}
+	if p.match(STRING) {
+		str := p.previous().lexeme
+		return NewLiteral(str[1:len(str)-1], p.previous().lexeme)
 	}
 	if p.match(LEFT_PAREN) {
 		expr := p.expression()

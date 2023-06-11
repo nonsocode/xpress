@@ -35,6 +35,19 @@ func TestLexerCanLexAction(t *testing.T) {
 	}, lex.tokens)
 }
 
+func TestBasicArithmetic(t *testing.T) {
+	lex := NewLexer("{{ 3 * 3 }}")
+	lex.run()
+	assert.Equal(t, []Token{
+		{lexeme: "{{", tokenType: TEMPLATE_LEFT_BRACE},
+		{lexeme: "3", tokenType: NUMBER},
+		{lexeme: "*", tokenType: STAR},
+		{lexeme: "3", tokenType: NUMBER},
+		{lexeme: "}}", tokenType: TEMPLATE_RIGHT_BRACE},
+		{lexeme: "", tokenType: EOF},
+	}, lex.tokens)
+}
+
 func TestArithmetic(t *testing.T) {
 	lex := NewLexer(`{{1+2-3*4/5}}`)
 	lex.run()
