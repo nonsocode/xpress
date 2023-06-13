@@ -136,7 +136,7 @@ func (l *Lexer) atTerminator() bool {
 		return true
 	}
 	switch r {
-	case eof, '.', ',', '|', ':', ')', '(':
+	case eof, '.', ',', '|', ':', ')', '(', '[', ']', '+', '-', '*', '/', '%', '^', '=', '!', '<', '>', '&', ';', '{', '}':
 		return true
 	}
 	return strings.HasPrefix(l.source[l.current:], rightDelim)

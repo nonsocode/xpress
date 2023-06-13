@@ -129,8 +129,32 @@ func (i *Evaluator) visitGetExpr(expr *Get) (interface{}, error) {
 }
 
 func (i *Evaluator) visitIndexExpr(expr *Index) (interface{}, error) {
-	// TODO: implement
-	return expr.object, nil
+	obj, err := i.interpret(expr.object)
+	if err != nil {
+		return nil, err
+	}
+	indexValue, err := i.interpret(expr.index)
+	if err != nil {
+		return nil, err
+	}
+	// Assume that obj is a map from string to interface{} and get the field.
+	switch obj.(type) {
+	case []interface{}:
+		indexNum, ok := indexValue.(float64)
+		if !ok {
+			return nil, fmt.Errorf("cannot index into array with non-number key %v", indexValue)
+		}
+
+		return obj.([]interface{})[int(indexNum)], nil
+	case map[string]interface{}:
+		indexValueStr, ok := indexValue.(string)
+		if !ok {
+			return nil, fmt.Errorf("cannot index into map with non-string key %v", indexValue)
+		}
+		return obj.(map[string]interface{})[indexValueStr], nil
+	default:
+		return nil, fmt.Errorf("cannot index into type %T", obj)
+	}
 }
 
 func (e *Evaluator) visitCallExpr(expr *Call) (interface{}, error) {

@@ -214,7 +214,7 @@ func (p *Parser) call() Expr {
 		if p.match(LEFT_PAREN) {
 			expr = p.finishCall(expr)
 		} else if p.match(DOT) {
-			name := p.consume(IDENTIFIER, "Expect property name after '.'.")
+			name := p.consume(IDENTIFIER, fmt.Sprintf("Expect property name after '.' at column %d.", p.current))
 			expr = NewGet(expr, name)
 		} else if p.match(LEFT_BRACKET) {
 			expr = p.finishIndex(expr)
