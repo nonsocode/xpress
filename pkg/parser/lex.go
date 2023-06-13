@@ -203,6 +203,10 @@ func lexInsideAction(l *Lexer) stateFn {
 			l.addToken(PERCENT)
 		case '?':
 			l.addToken(QMARK)
+		case '[':
+			l.addToken(LEFT_BRACKET)
+		case ']':
+			l.addToken(RIGHT_BRACKET)
 		case ':':
 			l.addToken(COLON)
 			// numbers
