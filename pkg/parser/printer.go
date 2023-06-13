@@ -36,6 +36,10 @@ func (ap *ASTPrinter) visitGetExpr(expr *Get) (interface{}, error) {
 	return ap.parenthesize("get", expr.object, NewLiteral("tail", "tail"))
 }
 
+func (ap *ASTPrinter) visitIndexExpr(expr *Index) (interface{}, error) {
+	return ap.parenthesize("index", expr.object, expr.index)
+}
+
 func (ap *ASTPrinter) visitCallExpr(expr *Call) (interface{}, error) {
 	args := make([]Expr, len(expr.arguments)+1)
 	args[0] = expr.callee

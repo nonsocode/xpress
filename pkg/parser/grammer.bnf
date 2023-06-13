@@ -7,7 +7,8 @@ comparison        → term ( ( GREATER | GREATER_EQUAL | LESS | LESS_EQUAL ) ter
 term              → factor ( ( MINUS | PLUS ) factor )* ;
 factor            → unary ( ( SLASH | STAR ) unary )* ;
 unary             → ( BANG | MINUS ) unary | call ;
-call              → primary ( LPAREN arguments? RPAREN | DOT identifier )* ;
+call              → primary ( LPAREN arguments? RPAREN | get )* ;
+get               → (DOT identifier | LBRACKET expression RBRACKET) ;
 primary           → number | string | TRUE | FALSE | NIL | identifier | LPAREN expression RPAREN 
 arguments         → expression ( COMMA expression )* ;
 identifier        → LETTER ( LETTER | DIGIT )* ;
@@ -35,6 +36,8 @@ LPAREN            → "(" ;
 RPAREN            → ")" ;
 EQUAL_EQUAL       → "==" ;
 BANG_EQUAL        → "!=" ;
+LBRACKET          → "[" ;
+RBRACKET          → "]" ;
 GREATER           → ">" ;
 GREATER_EQUAL     → ">=" ;
 LESS              → "<" ;
@@ -44,5 +47,3 @@ FALSE             → "false" ;
 NIL               → "nil" ;
 TEXT              → [^\{\}]+ ;
 char              → [^\"] ;
-
-

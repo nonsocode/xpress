@@ -214,13 +214,35 @@ func (p *Parser) call() Expr {
 		if p.match(LEFT_PAREN) {
 			expr = p.finishCall(expr)
 		} else if p.match(DOT) {
-			getToken := p.consume(IDENTIFIER, "Expect property name after '.'.")
-			expr = NewGet(expr, getToken)
+			name := p.consume(IDENTIFIER, "Expect property name after '.'.")
+			expr = NewGet(expr, name)
+		} else if p.match(LEFT_BRACKET) {
+			expr = p.finishIndex(expr)
 		} else {
 			break
 		}
 	}
 	return expr
+}
+
+type Index struct {
+	object  Expr
+	bracket Token
+	index   Expr
+}
+
+func NewIndex(object Expr, bracket Token, index Expr) *Index {
+	return &Index{object: object, bracket: bracket, index: index}
+}
+
+func (i *Index) accept(v Visitor) (interface{}, error) {
+	return v.visitIndexExpr(i)
+}
+
+func (p *Parser) finishIndex(expr Expr) Expr {
+	index := p.expression()
+	bracket := p.consume(RIGHT_BRACKET, "Expect ']' after index.")
+	return NewIndex(expr, bracket, index)
 }
 
 func (p *Parser) finishCall(expr Expr) Expr {

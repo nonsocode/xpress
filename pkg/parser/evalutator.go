@@ -107,6 +107,11 @@ func (i *Evaluator) visitGetExpr(expr *Get) (interface{}, error) {
 	return expr.object, nil
 }
 
+func (i *Evaluator) visitIndexExpr(expr *Index) (interface{}, error) {
+	// TODO: implement
+	return expr.object, nil
+}
+
 func (e *Evaluator) visitCallExpr(expr *Call) (interface{}, error) {
 	// TODO: implement
 	// callee := e.interpret(expr.callee)
