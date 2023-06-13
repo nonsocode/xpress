@@ -272,6 +272,9 @@ func (p *Parser) primary() Expr {
 
 		return NewLiteral(num, p.previous().lexeme)
 	}
+	if p.match(IDENTIFIER) {
+		return NewVariable(p.previous())
+	}
 	if p.match(STRING) {
 		str := p.previous().lexeme
 		return NewLiteral(str[1:len(str)-1], p.previous().lexeme)
@@ -282,6 +285,18 @@ func (p *Parser) primary() Expr {
 		return NewGrouping(expr)
 	}
 	panic(p.error(p.peek(), "Expect expression."))
+}
+
+type Variable struct {
+	name Token
+}
+
+func NewVariable(name Token) *Variable {
+	return &Variable{name: name}
+}
+
+func (v *Variable) accept(visitor Visitor) (interface{}, error) {
+	return visitor.visitVariableExpr(v)
 }
 
 func (p *Parser) consume(tokenType TokenType, errorMessage string) Token {

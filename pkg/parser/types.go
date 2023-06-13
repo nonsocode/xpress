@@ -11,6 +11,7 @@ type (
 		visitTernaryExpr(expr *Ternary) (interface{}, error)
 		visitGetExpr(expr *Get) (interface{}, error)
 		visitIndexExpr(expr *Index) (interface{}, error)
+		visitVariableExpr(expr *Variable) (interface{}, error)
 		visitCallExpr(expr *Call) (interface{}, error)
 	}
 	Interpreter interface {

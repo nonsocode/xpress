@@ -3,11 +3,19 @@ package parser
 import "fmt"
 
 type (
-	Evaluator struct{}
+	Evaluator struct {
+		funcs map[string]func(...interface{}) (interface{}, error)
+	}
 )
 
 func NewInterpreter() *Evaluator {
-	return &Evaluator{}
+	return &Evaluator{
+		funcs: make(map[string]func(...interface{}) (interface{}, error)),
+	}
+}
+
+func (i *Evaluator) AddFunc(name string, fn func(...interface{}) (interface{}, error)) {
+	i.funcs[name] = fn
 }
 
 func (i *Evaluator) visitBinaryExpr(expr *Binary) (interface{}, error) {
@@ -102,9 +110,22 @@ func (i *Evaluator) visitTernaryExpr(expr *Ternary) (interface{}, error) {
 	return i.interpret(expr.falseExpr)
 }
 
+func (i *Evaluator) visitVariableExpr(expr *Variable) (interface{}, error) {
+	if fn, ok := i.funcs[expr.name.lexeme]; ok {
+		return fn, nil
+	}
+	return nil, nil
+}
+
 func (i *Evaluator) visitGetExpr(expr *Get) (interface{}, error) {
-	// TODO: implement
-	return expr.object, nil
+	obj, err := i.interpret(expr.object)
+	if err != nil {
+		return nil, err
+	}
+
+	// Assume that obj is a map from string to interface{} and get the field.
+	// TODO: Check if obj is actually a map and handle errors.
+	return obj.(map[string]interface{})[expr.name.lexeme], nil
 }
 
 func (i *Evaluator) visitIndexExpr(expr *Index) (interface{}, error) {
@@ -113,15 +134,21 @@ func (i *Evaluator) visitIndexExpr(expr *Index) (interface{}, error) {
 }
 
 func (e *Evaluator) visitCallExpr(expr *Call) (interface{}, error) {
-	// TODO: implement
-	// callee := e.interpret(expr.callee)
-	// arguments := make([]interface{}, len(expr.arguments))
-	// for i, arg := range expr.arguments {
-	// 	arguments[i] = e.interpret(arg)
-	// }
-	// if function, ok := callee.(Callable); ok {
-	// 	return function.Call(e, arguments)
-	// }
+	args := make([]interface{}, 0)
+	for _, a := range expr.arguments {
+		arg, err := e.interpret(a)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, arg)
+	}
+	callee, err := e.interpret(expr.callee)
+	if err != nil {
+		return nil, err
+	}
+	if fn, ok := callee.(func(...interface{}) (interface{}, error)); ok {
+		return fn(args...)
+	}
 	return nil, nil
 }
 
