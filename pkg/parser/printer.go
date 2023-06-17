@@ -53,6 +53,10 @@ func (ap *ASTPrinter) visitCallExpr(expr *Call) (interface{}, error) {
 	return ap.parenthesize("call", args...)
 }
 
+func (ap *ASTPrinter) visitArrayExpr(expr *Array) (interface{}, error) {
+	return ap.parenthesize("array", expr.values...)
+}
+
 func (ap *ASTPrinter) parenthesize(name string, exprs ...Expr) (string, error) {
 	str := "(" + name
 	for _, expr := range exprs {

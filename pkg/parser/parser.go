@@ -130,12 +130,32 @@ func (p *Parser) expression() Expr {
 }
 
 func (p *Parser) ternary() Expr {
-	expr := p.equality()
+	expr := p.logicalOr()
 	if p.match(QMARK) {
 		trueExpr := p.expression()
 		p.consume(COLON, "Expect ':' after true expression.")
 		falseExpr := p.expression()
 		expr = NewTernary(expr, trueExpr, falseExpr)
+	}
+	return expr
+}
+
+func (p *Parser) logicalOr() Expr {
+	expr := p.logicalAnd()
+	for p.match(OR) {
+		operator := p.previous()
+		right := p.logicalAnd()
+		expr = NewBinary(expr, operator, right)
+	}
+	return expr
+}
+
+func (p *Parser) logicalAnd() Expr {
+	expr := p.equality()
+	for p.match(AND) {
+		operator := p.previous()
+		right := p.equality()
+		expr = NewBinary(expr, operator, right)
 	}
 	return expr
 }
@@ -284,7 +304,35 @@ func (p *Parser) primary() Expr {
 		p.consume(RIGHT_PAREN, "Expect ')' after expression.")
 		return NewGrouping(expr)
 	}
+	if p.match(LEFT_BRACKET) {
+		return p.array()
+	}
+
 	panic(p.error(p.peek(), "Expect expression."))
+}
+
+type Array struct {
+	values []Expr
+}
+
+func NewArray(values []Expr) *Array {
+	return &Array{values: values}
+}
+
+func (a *Array) accept(visitor Visitor) (interface{}, error) {
+	return visitor.visitArrayExpr(a)
+}
+
+func (p *Parser) array() Expr {
+	values := make([]Expr, 0)
+	if !p.check(RIGHT_BRACKET) {
+		values = append(values, p.expression())
+		for p.match(COMMA) {
+			values = append(values, p.expression())
+		}
+	}
+	p.consume(RIGHT_BRACKET, "Expect ']' after array.")
+	return NewArray(values)
 }
 
 type Variable struct {

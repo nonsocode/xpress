@@ -27,6 +27,8 @@ var keywords = map[string]TokenType{
 type Token struct {
 	lexeme    string
 	tokenType TokenType
+	start     int
+	line      int
 }
 type TokenType int
 
@@ -59,18 +61,18 @@ func (l *Lexer) run() {
 	for state := lexText; state != nil; {
 		state = state(l)
 	}
-	l.tokens = append(l.tokens, Token{"", EOF})
+	l.tokens = append(l.tokens, Token{"", EOF, l.current, l.line})
 }
 
 func (l *Lexer) addToken(tokenType TokenType) {
 	text := l.source[l.start:l.current]
-	l.tokens = append(l.tokens, Token{text, tokenType})
+	l.tokens = append(l.tokens, Token{text, tokenType, l.start, l.line})
 	l.start = l.current
 	l.lineStart = l.line
 }
 
 func (l *Lexer) errorf(err string, args ...any) stateFn {
-	l.tokens = append(l.tokens, Token{fmt.Sprintf(err, args...), ERROR})
+	l.tokens = append(l.tokens, Token{fmt.Sprintf(err, args...), ERROR, l.start, l.line})
 	return nil
 }
 

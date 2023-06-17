@@ -53,9 +53,34 @@ func (i *Evaluator) visitBinaryExpr(expr *Binary) (interface{}, error) {
 		return left.(float64) < right.(float64), nil
 	case LESS_EQUAL:
 		return left.(float64) <= right.(float64), nil
+	case BANG_EQUAL:
+		return !i.isEqual(left, right), nil
+	case EQUAL_EQUAL:
+		return i.isEqual(left, right), nil
+	case AND:
+		return i.isTruthy(left) && i.isTruthy(right), nil
+	case OR:
+		return i.isTruthy(left) || i.isTruthy(right), nil
 	}
 	return nil, nil
 }
+
+func (i *Evaluator) isEqual(a, b interface{}) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil {
+		return false
+	}
+	if b == nil {
+		return false
+	}
+	return a == b
+}
+
+// func (i *Evaluator) compare(a, b interface{}, op TokenType) bool, error {
+// 	// both types have to be the same otherwise we can't compare them
+// }
 
 func (i *Evaluator) visitGroupingExpr(expr *Grouping) (interface{}, error) {
 	return i.interpret(expr.expression)
@@ -174,6 +199,18 @@ func (e *Evaluator) visitCallExpr(expr *Call) (interface{}, error) {
 		return fn(args...)
 	}
 	return nil, nil
+}
+
+func (i *Evaluator) visitArrayExpr(expr *Array) (interface{}, error) {
+	values := make([]interface{}, 0)
+	for _, v := range expr.values {
+		value, err := i.interpret(v)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, value)
+	}
+	return values, nil
 }
 
 func (i *Evaluator) isTruthy(object interface{}) bool {

@@ -13,6 +13,7 @@ type (
 		visitIndexExpr(expr *Index) (interface{}, error)
 		visitVariableExpr(expr *Variable) (interface{}, error)
 		visitCallExpr(expr *Call) (interface{}, error)
+		visitArrayExpr(expr *Array) (interface{}, error)
 	}
 	Interpreter interface {
 		interpret(expr Expr) (interface{}, error)

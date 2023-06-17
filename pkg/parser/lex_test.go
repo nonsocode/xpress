@@ -10,8 +10,8 @@ func TestLexerCanLexText(t *testing.T) {
 	lex := NewLexer("Hello World")
 	lex.run()
 	assert.Equal(t, []Token{
-		{"Hello World", TEXT},
-		{"", EOF},
+		{"Hello World", TEXT, 0, 1},
+		{"", EOF, 11, 1},
 	}, lex.tokens)
 }
 
@@ -19,8 +19,8 @@ func TestLexerCanLexTextWithNewlines(t *testing.T) {
 	lex := NewLexer("Hello\nWorld")
 	lex.run()
 	assert.Equal(t, []Token{
-		{"Hello\nWorld", TEXT},
-		{"", EOF},
+		{"Hello\nWorld", TEXT, 0, 1},
+		{"", EOF, 11, 2},
 	}, lex.tokens)
 }
 

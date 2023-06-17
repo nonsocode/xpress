@@ -7,6 +7,9 @@ import (
 )
 
 func main() {
+	var zero interface{} = 0
+	fmt.Println(nil == zero)
+	fmt.Println("hello")
 
 	evaluator := *parser.NewInterpreter()
 	template1 := "hehe{{-123 * (45.67) }}"
