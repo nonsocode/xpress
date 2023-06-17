@@ -1,6 +1,8 @@
 package parser
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type (
 	Evaluator struct {
@@ -29,30 +31,21 @@ func (i *Evaluator) visitBinaryExpr(expr *Binary) (interface{}, error) {
 	}
 	switch expr.operator.tokenType {
 	case MINUS:
-		return left.(float64) - right.(float64), nil
+		return i.sub(left, right)
 	case SLASH:
-		return left.(float64) / right.(float64), nil
+		return i.div(left, right)
 	case STAR:
-		return left.(float64) * right.(float64), nil
+		return i.mul(left, right)
 	case PLUS:
-		if l, ok := left.(float64); ok {
-			if r, ok := right.(float64); ok {
-				return l + r, nil
-			}
-		}
-		if l, ok := left.(string); ok {
-			if r, ok := right.(string); ok {
-				return l + r, nil
-			}
-		}
+		return i.add(left, right)
 	case GREATER:
-		return left.(float64) > right.(float64), nil
+		return i.greater(left, right)
 	case GREATER_EQUAL:
-		return left.(float64) >= right.(float64), nil
+		return i.greaterEqual(left, right)
 	case LESS:
-		return left.(float64) < right.(float64), nil
+		return i.less(left, right)
 	case LESS_EQUAL:
-		return left.(float64) <= right.(float64), nil
+		return i.lessEqual(left, right)
 	case BANG_EQUAL:
 		return !i.isEqual(left, right), nil
 	case EQUAL_EQUAL:
@@ -63,6 +56,110 @@ func (i *Evaluator) visitBinaryExpr(expr *Binary) (interface{}, error) {
 		return i.isTruthy(left) || i.isTruthy(right), nil
 	}
 	return nil, nil
+}
+
+func (e *Evaluator) add(left, right interface{}) (interface{}, error) {
+	if left == nil || right == nil {
+		return nil, fmt.Errorf("cannot add nil values: adding %v and %v", left, right)
+	}
+
+	_, oks1 := left.(string)
+	_, oks2 := right.(string)
+	if oks1 || oks2 {
+		return fmt.Sprintf("%v%v", left, right), nil
+	}
+	return left.(float64) + right.(float64), nil
+}
+
+func (e *Evaluator) sub(left, right interface{}) (interface{}, error) {
+	if left == nil || right == nil {
+		return nil, fmt.Errorf("cannot subtract nil values: adding %v and %v", left, right)
+	}
+
+	leftNum, ok1 := left.(float64)
+	rightNum, ok2 := right.(float64)
+
+	if !ok1 || !ok2 {
+		return nil, fmt.Errorf("cannot subtract non-numbers or strings: %v - %v", left, right)
+	}
+
+	return leftNum - rightNum, nil
+}
+
+func (e *Evaluator) mul(left, right interface{}) (interface{}, error) {
+	if left, ok := left.(float64); ok {
+		if right, ok := right.(float64); ok {
+			return left * right, nil
+		}
+	}
+	return nil, fmt.Errorf("cannot multiply non-numbers: %v * %v", left, right)
+}
+
+func (e *Evaluator) div(left, right interface{}) (interface{}, error) {
+	if left, ok := left.(float64); ok {
+		if right, ok := right.(float64); ok {
+			if right == 0 {
+				return nil, fmt.Errorf("cannot divide by zero: %v / %v", left, right)
+			}
+			return left / right, nil
+		}
+	}
+	return nil, fmt.Errorf("cannot divide non-numbers: %v / %v", left, right)
+}
+func (e *Evaluator) greater(left, right interface{}) (interface{}, error) {
+	switch l := left.(type) {
+	case float64:
+		if r, ok := right.(float64); ok {
+			return l > r, nil
+		}
+	case string:
+		if r, ok := right.(string); ok {
+			return l > r, nil
+		}
+	}
+	return nil, fmt.Errorf("cannot compare %T with %T", left, right)
+}
+
+func (e *Evaluator) greaterEqual(left, right interface{}) (interface{}, error) {
+	switch l := left.(type) {
+	case float64:
+		if r, ok := right.(float64); ok {
+			return l >= r, nil
+		}
+	case string:
+		if r, ok := right.(string); ok {
+			return l >= r, nil
+		}
+	}
+	return nil, fmt.Errorf("cannot compare %T with %T", left, right)
+}
+
+func (e *Evaluator) less(left, right interface{}) (interface{}, error) {
+	switch l := left.(type) {
+	case float64:
+		if r, ok := right.(float64); ok {
+			return l < r, nil
+		}
+	case string:
+		if r, ok := right.(string); ok {
+			return l < r, nil
+		}
+	}
+	return nil, fmt.Errorf("cannot compare %T with %T", left, right)
+}
+
+func (e *Evaluator) lessEqual(left, right interface{}) (interface{}, error) {
+	switch l := left.(type) {
+	case float64:
+		if r, ok := right.(float64); ok {
+			return l <= r, nil
+		}
+	case string:
+		if r, ok := right.(string); ok {
+			return l <= r, nil
+		}
+	}
+	return nil, fmt.Errorf("cannot compare %T with %T", left, right)
 }
 
 func (i *Evaluator) isEqual(a, b interface{}) bool {

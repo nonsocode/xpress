@@ -30,6 +30,7 @@ var cases = []SuccessCases{
 		"{{ 3 * 3 }} escaped template with template after yes",
 	},
 	{"{{ 4 * 4 }}", float64(16)},
+	{"{{ 8 / 4 }}", float64(2)},
 	{"{{ 5 > 4 }}", true},
 	{"{{ 5 < 4 }}", false},
 	{"{{ 5 == 5 }}", true},
@@ -60,6 +61,7 @@ var cases = []SuccessCases{
 	{`{{ "a string" != "a string"}}`, false},
 	{`{{[1, 2, true, "a"]}}`, []interface{}{float64(1), float64(2), true, "a"}},
 	{`{{[1, 2, true, "a"]}} `, "[1 2 true a] "},
+	{`{{ "a string" + " " + "Joined" }}`, "a string Joined"},
 }
 
 var errorCases = []ErrorCases{
