@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"unicode"
@@ -61,12 +62,12 @@ func (l *Lexer) run() {
 	for state := lexText; state != nil; {
 		state = state(l)
 	}
-	l.tokens = append(l.tokens, Token{"", EOF, l.current, l.line})
+	l.tokens = append(l.tokens, Token{"", EOF, l.current, l.lineStart})
 }
 
 func (l *Lexer) addToken(tokenType TokenType) {
 	text := l.source[l.start:l.current]
-	l.tokens = append(l.tokens, Token{text, tokenType, l.start, l.line})
+	l.tokens = append(l.tokens, Token{text, tokenType, l.start, l.lineStart})
 	l.start = l.current
 	l.lineStart = l.line
 }
@@ -148,11 +149,13 @@ func lexText(l *Lexer) stateFn {
 	if x := strings.Index(l.source[l.start:], leftDelim); x >= 0 {
 		if x > 0 {
 			l.current += x
+			l.line += strings.Count(l.source[l.start:l.current], "\n")
 			l.addToken(TEXT)
 		}
 		return lexLeftDelim
 	}
 	l.current += len(l.source[l.start:])
+	l.line += strings.Count(l.source[l.start:l.current], "\n")
 	if l.start >= l.current {
 		return nil
 	}
@@ -184,6 +187,8 @@ func lexInsideAction(l *Lexer) stateFn {
 		switch c := l.next(); c {
 		case '"':
 			return lexDquote
+		case '\'':
+			return lexSquote
 		case '(':
 			l.addToken(LEFT_PAREN)
 		case ')':
@@ -286,7 +291,24 @@ func lexIdent(l *Lexer) stateFn {
 
 // lexDquote scans a quoted string.
 func lexDquote(l *Lexer) stateFn {
-Loop:
+	err := l.scanRawString('"')
+	if err != nil {
+		return l.errorf(err.Error())
+	}
+	l.addToken(STRING)
+	return lexInsideAction
+}
+
+func lexSquote(l *Lexer) stateFn {
+	err := l.scanRawString('\'')
+	if err != nil {
+		return l.errorf(err.Error())
+	}
+	l.addToken(STRING)
+	return lexInsideAction
+}
+
+func (l *Lexer) scanRawString(delim rune) error {
 	for {
 		switch l.next() {
 		case '\\':
@@ -295,13 +317,11 @@ Loop:
 			}
 			fallthrough
 		case eof, '\n':
-			return l.errorf("unterminated quoted string")
-		case '"':
-			break Loop
+			return errors.New("unterminated quoted string")
+		case delim:
+			return nil
 		}
 	}
-	l.addToken(STRING)
-	return lexInsideAction
 }
 
 // lexNumber scans a number: decimal, octal, hex and float. This

@@ -21,7 +21,14 @@ var cases = []SuccessCases{
 	{"{{ 123 * (45.67) }}", float64(123 * 45.67)},
 	{"{{-123 * (45.67) }} juxtaposed", "-5617.41 juxtaposed"},
 	{"{{-123 * (45.67) }} ", "-5617.41 "}, // converts to string if the template braces don't begin and end the string
-	{`{{ 3 * 3 }} withot spaces is {{ true ? "changed" : "not changed" }}`, "9 withot spaces is changed"},
+	{
+		`{{ 3 * 3 }} with text in-between {{ true ? "changed" : "not changed" }}`,
+		"9 with text in-between changed",
+	},
+	{
+		`{{'{{'}} 3 * 3 }} escaped template with template after {{ true ? "yes" : "no" }}`,
+		"{{ 3 * 3 }} escaped template with template after yes",
+	},
 	{"{{ 4 * 4 }}", float64(16)},
 	{"{{ 5 > 4 }}", true},
 	{"{{ 5 < 4 }}", false},
@@ -51,6 +58,8 @@ var cases = []SuccessCases{
 	{`{{ "a string" == "a different string"}}`, false},
 	{`{{ "a string" != "a string"}}`, false},
 	{`{{ "a string" != "a string"}}`, false},
+	{`{{[1, 2, true, "a"]}}`, []interface{}{float64(1), float64(2), true, "a"}},
+	{`{{[1, 2, true, "a"]}} `, "[1 2 true a] "},
 }
 
 var errorCases = []ErrorCases{
