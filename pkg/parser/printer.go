@@ -57,6 +57,10 @@ func (ap *ASTPrinter) visitArrayExpr(expr *Array) (interface{}, error) {
 	return ap.parenthesize("array", expr.values...)
 }
 
+func (ap *ASTPrinter) visitParseErrorExpr(err *ParseError) (interface{}, error) {
+	return nil, err
+}
+
 func (ap *ASTPrinter) parenthesize(name string, exprs ...Expr) (string, error) {
 	str := "(" + name
 	for _, expr := range exprs {

@@ -14,6 +14,8 @@ type (
 		visitVariableExpr(expr *Variable) (interface{}, error)
 		visitCallExpr(expr *Call) (interface{}, error)
 		visitArrayExpr(expr *Array) (interface{}, error)
+
+		visitParseErrorExpr(err *ParseError) (interface{}, error)
 	}
 	Interpreter interface {
 		interpret(expr Expr) (interface{}, error)

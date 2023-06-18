@@ -8,6 +8,10 @@ type (
 	Evaluator struct {
 		funcs map[string]func(...interface{}) (interface{}, error)
 	}
+
+	EvaluationError struct {
+		message string
+	}
 )
 
 func NewInterpreter() *Evaluator {
@@ -16,8 +20,20 @@ func NewInterpreter() *Evaluator {
 	}
 }
 
+func NewEvaluationError(message string, args ...interface{}) *EvaluationError {
+	return &EvaluationError{message: fmt.Sprintf(message, args...)}
+}
+
+func (e *EvaluationError) Error() string {
+	return e.message
+}
+
 func (i *Evaluator) AddFunc(name string, fn func(...interface{}) (interface{}, error)) {
 	i.funcs[name] = fn
+}
+
+func (i *Evaluator) SetFunctions(funcs map[string]func(...interface{}) (interface{}, error)) {
+	i.funcs = funcs
 }
 
 func (i *Evaluator) visitBinaryExpr(expr *Binary) (interface{}, error) {
@@ -68,7 +84,13 @@ func (e *Evaluator) add(left, right interface{}) (interface{}, error) {
 	if oks1 || oks2 {
 		return fmt.Sprintf("%v%v", left, right), nil
 	}
-	return left.(float64) + right.(float64), nil
+
+	l, okf1 := left.(float64)
+	r, okf2 := right.(float64)
+	if okf1 || okf2 {
+		return l + r, nil
+	}
+	return nil, fmt.Errorf("cannot add non-numbers or strings: %v + %v", left, right)
 }
 
 func (e *Evaluator) sub(left, right interface{}) (interface{}, error) {
@@ -175,9 +197,9 @@ func (i *Evaluator) isEqual(a, b interface{}) bool {
 	return a == b
 }
 
-// func (i *Evaluator) compare(a, b interface{}, op TokenType) bool, error {
-// 	// both types have to be the same otherwise we can't compare them
-// }
+func (i *Evaluator) visitParseErrorExpr(expr *ParseError) (interface{}, error) {
+	return nil, fmt.Errorf("parse error: %s", expr.message)
+}
 
 func (i *Evaluator) visitGroupingExpr(expr *Grouping) (interface{}, error) {
 	return i.interpret(expr.expression)
@@ -295,7 +317,17 @@ func (e *Evaluator) visitCallExpr(expr *Call) (interface{}, error) {
 	if fn, ok := callee.(func(...interface{}) (interface{}, error)); ok {
 		return fn(args...)
 	}
-	return nil, nil
+	return nil, NewEvaluationError("cannot call non-function '%s' of type %T", identifyCallee(expr), callee)
+}
+
+func identifyCallee(expr *Call) string {
+	switch callee := expr.callee.(type) {
+	case *Variable:
+		return callee.name.lexeme
+	case *Get:
+		return callee.name.lexeme
+	}
+	return "unknown"
 }
 
 func (i *Evaluator) visitArrayExpr(expr *Array) (interface{}, error) {

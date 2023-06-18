@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -62,14 +64,23 @@ var cases = []SuccessCases{
 	{`{{[1, 2, true, "a"]}}`, []interface{}{float64(1), float64(2), true, "a"}},
 	{`{{[1, 2, true, "a"]}} `, "[1 2 true a] "},
 	{`{{ "a string" + " " + "Joined" }}`, "a string Joined"},
+	{`{{ concat("string", "joined by", "another") }}`, "stringjoined byanother"},
+	{`{{ concat("string", " ", concat("with another", concat(" ", "recursive"))) }}`, "string with another recursive"},
 }
 
 var errorCases = []ErrorCases{
-	{"{{ 5 > }}", "unexpected end of expression"},
+	{"{{ 5 > }}", "parse error: Expect expression. got }}"},
+	{"{{ 5 ", "parse error: Expect '}}' after expression. got unclosed action"},
+	{"{{ 5 6 }}", "parse error: Expect '}}' after expression. got 6"},
+	{
+		"{{ nonexistentFunction() }}",
+		"cannot call non-function 'nonexistentFunction' of type <nil>",
+	},
 }
 
 func TestExampleParser(t *testing.T) {
 	evaluator := NewInterpreter()
+	evaluator.SetFunctions(createTestTemplateFunctions())
 	for _, c := range cases {
 		res, err := NewParser(c.template).Parse(evaluator)
 		assert.Nil(t, err)
@@ -83,5 +94,20 @@ func TestExampleParserErrors(t *testing.T) {
 		_, err := NewParser(c.template).Parse(evaluator)
 		assert.NotNil(t, err)
 		assert.Equal(t, c.msg, err.Error())
+	}
+}
+
+func createTestTemplateFunctions() map[string]func(...interface{}) (interface{}, error) {
+	return map[string]func(...interface{}) (interface{}, error){
+		"concat": func(args ...interface{}) (interface{}, error) {
+			builder := strings.Builder{}
+			for _, arg := range args {
+				if _, ok := arg.(string); !ok {
+					return nil, errors.New("concat only accepts strings")
+				}
+				builder.WriteString(arg.(string))
+			}
+			return builder.String(), nil
+		},
 	}
 }
