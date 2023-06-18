@@ -17,31 +17,99 @@ const (
 	alphaNumeric = alpha + digit
 )
 
-var keywords = map[string]TokenType{
-	"and":   AND,
-	"or":    OR,
-	"false": FALSE,
-	"true":  TRUE,
-	"nil":   NIL,
+var (
+	keywords = map[string]TokenType{
+		"and":   AND,
+		"or":    OR,
+		"false": FALSE,
+		"true":  TRUE,
+		"nil":   NIL,
+	}
+
+	tokenMap = map[TokenType]string{
+		EOF:                  "EOF",
+		ERROR:                "ERROR",
+		LEFT_PAREN:           "LEFT_PAREN",
+		RIGHT_PAREN:          "RIGHT_PAREN",
+		LEFT_BRACE:           "LEFT_BRACE",
+		RIGHT_BRACE:          "RIGHT_BRACE",
+		LEFT_BRACKET:         "LEFT_BRACKET",
+		RIGHT_BRACKET:        "RIGHT_BRACKET",
+		PERCENT:              "PERCENT",
+		COLON:                "COLON",
+		COMMA:                "COMMA",
+		DOT:                  "DOT",
+		MINUS:                "MINUS",
+		PLUS:                 "PLUS",
+		SEMICOLON:            "SEMICOLON",
+		SLASH:                "SLASH",
+		STAR:                 "STAR",
+		QMARK:                "QMARK",
+		BANG:                 "BANG",
+		BANG_EQUAL:           "BANG_EQUAL",
+		EQUAL:                "EQUAL",
+		EQUAL_EQUAL:          "EQUAL_EQUAL",
+		GREATER:              "GREATER",
+		GREATER_EQUAL:        "GREATER_EQUAL",
+		LESS:                 "LESS",
+		LESS_EQUAL:           "LESS_EQUAL",
+		TEMPLATE_LEFT_BRACE:  "TEMPLATE_LEFT_BRACE",
+		TEMPLATE_RIGHT_BRACE: "TEMPLATE_RIGHT_BRACE",
+		AND:                  "AND",
+		OR:                   "OR",
+		IDENTIFIER:           "IDENTIFIER",
+		STRING:               "STRING",
+		NUMBER:               "NUMBER",
+		TEXT:                 "TEXT",
+		FALSE:                "FALSE",
+		TRUE:                 "TRUE",
+		NIL:                  "NIL",
+	}
+)
+
+type (
+	Token struct {
+		lexeme    string
+		tokenType TokenType
+		start     int
+		line      int
+	}
+	TokenType int
+
+	Lexer struct {
+		source    string
+		tokens    []Token
+		start     int
+		lineStart int
+		current   int
+		line      int
+	}
+	stateFn func(*Lexer) stateFn
+)
+
+func (t Token) Lexeme() string {
+	return t.lexeme
 }
 
-type Token struct {
-	lexeme    string
-	tokenType TokenType
-	start     int
-	line      int
+func (t Token) Type() TokenType {
+	return t.tokenType
 }
-type TokenType int
 
-type Lexer struct {
-	source    string
-	tokens    []Token
-	start     int
-	lineStart int
-	current   int
-	line      int
+func (t Token) Start() int {
+	return t.start
 }
-type stateFn func(*Lexer) stateFn
+
+func (t Token) Line() int {
+	return t.line
+}
+
+func (t Token) String() string {
+	return fmt.Sprintf("%v %v %v", t.tokenType, t.lexeme, t.line)
+}
+
+func (t TokenType) String() string {
+	return tokenMap[t]
+}
 
 func NewLexer(source string) *Lexer {
 	return &Lexer{

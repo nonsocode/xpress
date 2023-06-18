@@ -45,14 +45,12 @@ type (
 
 	Call struct {
 		callee    Expr
-		paren     Token
 		arguments []Expr
 	}
 
 	Index struct {
-		object  Expr
-		bracket Token
-		index   Expr
+		object Expr
+		index  Expr
 	}
 
 	Array struct {
