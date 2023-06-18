@@ -352,6 +352,10 @@ func (i *Evaluator) isTruthy(object interface{}) bool {
 	return true
 }
 
+func (i *Evaluator) Evaluate(expr Expr) (interface{}, error) {
+	return i.interpret(expr)
+}
+
 func (i *Evaluator) interpret(expr Expr) (interface{}, error) {
 	return expr.accept(i)
 }

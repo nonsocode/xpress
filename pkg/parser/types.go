@@ -18,6 +18,6 @@ type (
 		visitParseErrorExpr(err *ParseError) (interface{}, error)
 	}
 	Interpreter interface {
-		interpret(expr Expr) (interface{}, error)
+		Evaluate(expr Expr) (interface{}, error)
 	}
 )

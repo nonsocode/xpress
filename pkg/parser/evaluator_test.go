@@ -82,7 +82,8 @@ func TestExampleParser(t *testing.T) {
 	evaluator := NewInterpreter()
 	evaluator.SetFunctions(createTestTemplateFunctions())
 	for _, c := range cases {
-		res, err := NewParser(c.template).Parse(evaluator)
+		ast := NewParser(c.template).Parse()
+		res, err := evaluator.Evaluate(ast)
 		assert.Nil(t, err)
 		assert.Equal(t, c.expect, res)
 	}
@@ -91,7 +92,8 @@ func TestExampleParser(t *testing.T) {
 func TestExampleParserErrors(t *testing.T) {
 	evaluator := NewInterpreter()
 	for _, c := range errorCases {
-		_, err := NewParser(c.template).Parse(evaluator)
+		ast := NewParser(c.template).Parse()
+		_, err := evaluator.Evaluate(ast)
 		assert.NotNil(t, err)
 		assert.Equal(t, c.msg, err.Error())
 	}

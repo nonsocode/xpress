@@ -75,6 +75,6 @@ func (ap *ASTPrinter) parenthesize(name string, exprs ...Expr) (string, error) {
 	return str, nil
 }
 
-func (ap *ASTPrinter) interpret(expr Expr) (interface{}, error) {
+func (ap *ASTPrinter) Print(expr Expr) (interface{}, error) {
 	return expr.accept(&ASTPrinter{})
 }

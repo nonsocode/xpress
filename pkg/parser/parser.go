@@ -84,8 +84,8 @@ func NewParser(source string) *Parser {
 	return &Parser{tokens: tokens, current: 0}
 }
 
-func (p *Parser) Parse(i Interpreter) (interface{}, error) {
-	return i.interpret(p.template())
+func (p *Parser) Parse() Expr {
+	return p.template()
 }
 
 func (p *Parser) template() Expr {

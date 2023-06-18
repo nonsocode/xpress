@@ -9,9 +9,9 @@ import (
 func main() {
 
 	evaluator := *parser.NewInterpreter()
-	template1 := "hehe{{-123 * (45.67) }}"
-	template2 := `{{ 3 * 3 }} withot spaces is {{ true ? "changed" : "not changed" }}`
-	template3 := `This year's woman of the year is {{ hello().woman.funcs().justice }}`
+	template1 := parser.NewParser("hehe{{-123 * (45.67) }}").Parse()
+	template2 := parser.NewParser(`{{ 3 * 3 }} withot spaces is {{ true ? "changed" : "not changed" }}`).Parse()
+	template3 := parser.NewParser(`This year's woman of the year is {{ hello().woman.funcs().justice }}`).Parse()
 	evaluator.AddFunc("hello", func(args ...interface{}) (interface{}, error) {
 		return map[string]interface{}{
 			"woman": map[string]interface{}{
@@ -19,19 +19,15 @@ func main() {
 					2020, 2021, 2022,
 				},
 				"funcs": func(args ...interface{}) (interface{}, error) {
-					type HMap struct {
-						justice string
-					}
-					return HMap{
-						justice: "Ruth Bader Ginsburg",
+					return map[string]interface{}{
+						"justice": "Ruth Bader Ginsburg",
 					}, nil
 				},
 			},
 		}, nil
 	})
-	fmt.Println(parser.NewParser("-hello world").Parse(&evaluator))
-	fmt.Println(parser.NewParser(template1).Parse(&evaluator))
-	fmt.Println(parser.NewParser(template2).Parse(&evaluator))
-	fmt.Println(parser.NewParser(template3).Parse(&evaluator))
+	fmt.Println(evaluator.Evaluate((template1)))
+	fmt.Println(evaluator.Evaluate((template2)))
+	fmt.Println(evaluator.Evaluate((template3)))
 	// ...
 }

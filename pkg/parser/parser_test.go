@@ -8,14 +8,16 @@ import (
 
 func TestASTPrinter(t *testing.T) {
 	printer := ASTPrinter{}
-	res, err := NewParser("6 * (4 + 2)").Parse(&printer)
+	ast := NewParser("6 * (4 + 2)").Parse()
+	res, err := printer.Print(ast)
 	assert.Nil(t, err)
 	assert.Equal(t, "(template 6 * (4 + 2))", res)
 }
 
 func TestEvaluator(t *testing.T) {
 	evaluator := Evaluator{}
-	res, err := NewParser("{{6 * (4 + 2)}}").Parse(&evaluator)
+	ast := NewParser("{{6 * (4 + 2)}}").Parse()
+	res, err := evaluator.Evaluate(ast)
 	assert.Nil(t, err)
 	assert.Equal(t, float64(36), res)
 }
