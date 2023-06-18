@@ -22,7 +22,10 @@ var cases = []SuccessCases{
 	{"Just raw text", "Just raw text"},
 	{"{{ 123 * (45.67) }}", float64(123 * 45.67)},
 	{"{{-123 * (45.67) }} juxtaposed", "-5617.41 juxtaposed"},
-	{"{{-123 * (45.67) }} ", "-5617.41 "}, // converts to string if the template braces don't begin and end the string
+	{
+		"{{-123 * (45.67) }} ",
+		"-5617.41 ",
+	}, // converts to string if the template braces don't begin and end the string
 	{
 		`{{ 3 * 3 }} with text in-between {{ true ? "changed" : "not changed" }}`,
 		"9 with text in-between changed",
@@ -65,7 +68,10 @@ var cases = []SuccessCases{
 	{`{{[1, 2, true, "a"]}} `, "[1 2 true a] "},
 	{`{{ "a string" + " " + "Joined" }}`, "a string Joined"},
 	{`{{ concat("string", "joined by", "another") }}`, "stringjoined byanother"},
-	{`{{ concat("string", " ", concat("with another", concat(" ", "recursive"))) }}`, "string with another recursive"},
+	{
+		`{{ concat("string", " ", concat("with another", concat(" ", "recursive"))) }}`,
+		"string with another recursive",
+	},
 }
 
 var errorCases = []ErrorCases{

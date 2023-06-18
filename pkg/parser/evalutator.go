@@ -317,7 +317,11 @@ func (e *Evaluator) visitCallExpr(expr *Call) (interface{}, error) {
 	if fn, ok := callee.(func(...interface{}) (interface{}, error)); ok {
 		return fn(args...)
 	}
-	return nil, NewEvaluationError("cannot call non-function '%s' of type %T", identifyCallee(expr), callee)
+	return nil, NewEvaluationError(
+		"cannot call non-function '%s' of type %T",
+		identifyCallee(expr),
+		callee,
+	)
 }
 
 func identifyCallee(expr *Call) string {
