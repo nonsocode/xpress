@@ -357,5 +357,5 @@ func (i *Evaluator) Evaluate(expr Expr) (interface{}, error) {
 }
 
 func (i *Evaluator) interpret(expr Expr) (interface{}, error) {
-	return expr.accept(i)
+	return expr.Accept(i)
 }

@@ -5,77 +5,169 @@ import (
 	"strconv"
 )
 
-type Expr interface {
-	accept(v Visitor) (interface{}, error)
-}
+type (
+	Expr interface {
+		Accept(v Visitor) (interface{}, error)
+	}
 
-type Binary struct {
-	left     Expr
-	operator Token
-	right    Expr
-}
+	Binary struct {
+		left     Expr
+		operator Token
+		right    Expr
+	}
+
+	Grouping struct {
+		expression Expr
+	}
+
+	Literal struct {
+		value interface{}
+		raw   string
+	}
+
+	Unary struct {
+		operator Token
+		right    Expr
+	}
+
+	Template struct {
+		expressions []Expr
+	}
+
+	Parser struct {
+		tokens  []Token
+		current int
+	}
+
+	Ternary struct {
+		condition Expr
+		trueExpr  Expr
+		falseExpr Expr
+	}
+
+	Get struct {
+		object Expr
+		name   Token
+	}
+
+	Call struct {
+		callee    Expr
+		paren     Token
+		arguments []Expr
+	}
+
+	Index struct {
+		object  Expr
+		bracket Token
+		index   Expr
+	}
+
+	Array struct {
+		values []Expr
+	}
+
+	Variable struct {
+		name Token
+	}
+
+	ParseError struct {
+		token   Token
+		message string
+	}
+)
 
 func NewBinary(left Expr, operator Token, right Expr) *Binary {
 	return &Binary{left: left, operator: operator, right: right}
 }
 
-func (b *Binary) accept(v Visitor) (interface{}, error) {
+func (b *Binary) Accept(v Visitor) (interface{}, error) {
 	return v.visitBinaryExpr(b)
-}
-
-type Grouping struct {
-	expression Expr
 }
 
 func NewGrouping(expression Expr) *Grouping {
 	return &Grouping{expression: expression}
 }
 
-func (g *Grouping) accept(v Visitor) (interface{}, error) {
+func (g *Grouping) Accept(v Visitor) (interface{}, error) {
 	return v.visitGroupingExpr(g)
-}
-
-type Literal struct {
-	value interface{}
-	raw   string
 }
 
 func NewLiteral(value interface{}, raw string) *Literal {
 	return &Literal{value: value, raw: raw}
 }
 
-func (l *Literal) accept(v Visitor) (interface{}, error) {
+func (l *Literal) Accept(v Visitor) (interface{}, error) {
 	return v.visitLiteralExpr(l)
-}
-
-type Unary struct {
-	operator Token
-	right    Expr
 }
 
 func NewUnary(operator Token, right Expr) *Unary {
 	return &Unary{operator: operator, right: right}
 }
 
-func (u *Unary) accept(v Visitor) (interface{}, error) {
+func (u *Unary) Accept(v Visitor) (interface{}, error) {
 	return v.visitUnaryExpr(u)
-}
-
-type Template struct {
-	expressions []Expr
 }
 
 func NewTemplate(expressions []Expr) *Template {
 	return &Template{expressions: expressions}
 }
 
-func (t *Template) accept(v Visitor) (interface{}, error) {
+func (t *Template) Accept(v Visitor) (interface{}, error) {
 	return v.visitTemplateExpr(t)
 }
 
-type Parser struct {
-	tokens  []Token
-	current int
+func NewTernary(condition Expr, trueExpr Expr, falseExpr Expr) *Ternary {
+	return &Ternary{condition: condition, trueExpr: trueExpr, falseExpr: falseExpr}
+}
+
+func (t *Ternary) Accept(v Visitor) (interface{}, error) {
+	return v.visitTernaryExpr(t)
+}
+
+func NewGet(object Expr, name Token) *Get {
+	return &Get{object: object, name: name}
+}
+
+func (g *Get) Accept(v Visitor) (interface{}, error) {
+	return v.visitGetExpr(g)
+}
+
+func NewCall(callee Expr, paren Token, arguments []Expr) *Call {
+	return &Call{callee: callee, paren: paren, arguments: arguments}
+}
+
+func (c *Call) Accept(v Visitor) (interface{}, error) {
+	return v.visitCallExpr(c)
+}
+func NewIndex(object Expr, bracket Token, index Expr) *Index {
+	return &Index{object: object, bracket: bracket, index: index}
+}
+
+func (i *Index) Accept(v Visitor) (interface{}, error) {
+	return v.visitIndexExpr(i)
+}
+func NewArray(values []Expr) *Array {
+	return &Array{values: values}
+}
+
+func (a *Array) Accept(visitor Visitor) (interface{}, error) {
+	return visitor.visitArrayExpr(a)
+}
+
+func NewVariable(name Token) *Variable {
+	return &Variable{name: name}
+}
+
+func (v *Variable) Accept(visitor Visitor) (interface{}, error) {
+	return visitor.visitVariableExpr(v)
+}
+
+func (pe *ParseError) Error() string {
+	return fmt.Sprintf("Error at '%s': %s", pe.token.lexeme, pe.message)
+}
+
+func (p *ParseError) Accept(v Visitor) (interface{}, error) {
+	return v.visitParseErrorExpr(p)
 }
 
 func NewParser(source string) *Parser {
@@ -98,20 +190,6 @@ func (p *Parser) template() Expr {
 		}
 	}
 	return NewTemplate(exprs)
-}
-
-type Ternary struct {
-	condition Expr
-	trueExpr  Expr
-	falseExpr Expr
-}
-
-func NewTernary(condition Expr, trueExpr Expr, falseExpr Expr) *Ternary {
-	return &Ternary{condition: condition, trueExpr: trueExpr, falseExpr: falseExpr}
-}
-
-func (t *Ternary) accept(v Visitor) (interface{}, error) {
-	return v.visitTernaryExpr(t)
 }
 
 func (p *Parser) valueTemplate() Expr {
@@ -207,33 +285,6 @@ func (p *Parser) unary() Expr {
 	return p.call()
 }
 
-type Get struct {
-	object Expr
-	name   Token
-}
-
-func NewGet(object Expr, name Token) *Get {
-	return &Get{object: object, name: name}
-}
-
-func (g *Get) accept(v Visitor) (interface{}, error) {
-	return v.visitGetExpr(g)
-}
-
-type Call struct {
-	callee    Expr
-	paren     Token
-	arguments []Expr
-}
-
-func NewCall(callee Expr, paren Token, arguments []Expr) *Call {
-	return &Call{callee: callee, paren: paren, arguments: arguments}
-}
-
-func (c *Call) accept(v Visitor) (interface{}, error) {
-	return v.visitCallExpr(c)
-}
-
 func (p *Parser) call() Expr {
 	expr := p.primary()
 	for {
@@ -252,20 +303,6 @@ func (p *Parser) call() Expr {
 		}
 	}
 	return expr
-}
-
-type Index struct {
-	object  Expr
-	bracket Token
-	index   Expr
-}
-
-func NewIndex(object Expr, bracket Token, index Expr) *Index {
-	return &Index{object: object, bracket: bracket, index: index}
-}
-
-func (i *Index) accept(v Visitor) (interface{}, error) {
-	return v.visitIndexExpr(i)
 }
 
 func (p *Parser) finishIndex(expr Expr) Expr {
@@ -329,18 +366,6 @@ func (p *Parser) primary() Expr {
 	return p.error(fmt.Sprintf("Expect expression. got %v", p.peek().lexeme))
 }
 
-type Array struct {
-	values []Expr
-}
-
-func NewArray(values []Expr) *Array {
-	return &Array{values: values}
-}
-
-func (a *Array) accept(visitor Visitor) (interface{}, error) {
-	return visitor.visitArrayExpr(a)
-}
-
 func (p *Parser) array() Expr {
 	values := make([]Expr, 0)
 	if !p.check(RIGHT_BRACKET) {
@@ -355,18 +380,6 @@ func (p *Parser) array() Expr {
 	}
 
 	return NewArray(values)
-}
-
-type Variable struct {
-	name Token
-}
-
-func NewVariable(name Token) *Variable {
-	return &Variable{name: name}
-}
-
-func (v *Variable) accept(visitor Visitor) (interface{}, error) {
-	return visitor.visitVariableExpr(v)
 }
 
 func (p *Parser) consume(tokenType TokenType) (Token, bool) {
@@ -414,17 +427,4 @@ func (p *Parser) advance() Token {
 
 func (p *Parser) previous() Token {
 	return p.tokens[p.current-1]
-}
-
-type ParseError struct {
-	token   Token
-	message string
-}
-
-func (pe *ParseError) Error() string {
-	return fmt.Sprintf("Error at '%s': %s", pe.token.lexeme, pe.message)
-}
-
-func (p *ParseError) accept(v Visitor) (interface{}, error) {
-	return v.visitParseErrorExpr(p)
 }

@@ -29,5 +29,8 @@ func main() {
 	fmt.Println(evaluator.Evaluate((template1)))
 	fmt.Println(evaluator.Evaluate((template2)))
 	fmt.Println(evaluator.Evaluate((template3)))
+	fmt.Println(template1)
+	fmt.Println(template2)
+	fmt.Println(template3)
 	// ...
 }

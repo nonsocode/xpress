@@ -105,7 +105,7 @@ func createTestTemplateFunctions() map[string]func(...interface{}) (interface{},
 			builder := strings.Builder{}
 			for _, arg := range args {
 				if _, ok := arg.(string); !ok {
-					return nil, errors.New("concat only accepts strings")
+					return nil, errors.New("concat only Accepts strings")
 				}
 				builder.WriteString(arg.(string))
 			}

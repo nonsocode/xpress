@@ -65,7 +65,7 @@ func (ap *ASTPrinter) parenthesize(name string, exprs ...Expr) (string, error) {
 	str := "(" + name
 	for _, expr := range exprs {
 		str += " "
-		val, err := expr.accept(ap)
+		val, err := expr.Accept(ap)
 		if err != nil {
 			return "", err
 		}
@@ -76,5 +76,5 @@ func (ap *ASTPrinter) parenthesize(name string, exprs ...Expr) (string, error) {
 }
 
 func (ap *ASTPrinter) Print(expr Expr) (interface{}, error) {
-	return expr.accept(&ASTPrinter{})
+	return expr.Accept(&ASTPrinter{})
 }
