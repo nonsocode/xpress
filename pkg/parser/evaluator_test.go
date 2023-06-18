@@ -72,6 +72,10 @@ var cases = []SuccessCases{
 		`{{ concat("string", " ", concat("with another", concat(" ", "recursive"))) }}`,
 		"string with another recursive",
 	},
+	{
+		"{{ getDeepObject().deep.object.with.values }}",
+		[]interface{}{3, 2, 1},
+	},
 }
 
 var errorCases = []ErrorCases{
@@ -106,6 +110,7 @@ func TestExampleParserErrors(t *testing.T) {
 }
 
 func createTestTemplateFunctions() map[string]func(...interface{}) (interface{}, error) {
+
 	return map[string]func(...interface{}) (interface{}, error){
 		"concat": func(args ...interface{}) (interface{}, error) {
 			builder := strings.Builder{}
@@ -116,6 +121,17 @@ func createTestTemplateFunctions() map[string]func(...interface{}) (interface{},
 				builder.WriteString(arg.(string))
 			}
 			return builder.String(), nil
+		},
+		"getDeepObject": func(args ...interface{}) (interface{}, error) {
+			return map[string]interface{}{
+				"deep": map[string]interface{}{
+					"object": map[string]interface{}{
+						"with": map[string]interface{}{
+							"values": []interface{}{3, 2, 1},
+						},
+					},
+				},
+			}, nil
 		},
 	}
 }

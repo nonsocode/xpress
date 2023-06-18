@@ -118,6 +118,7 @@ func (jp *JSONPrinter) visitUnaryExpr(expr *Unary) (interface{}, error) {
 		Right:    right,
 	}, nil
 }
+
 func (jp *JSONPrinter) visitTemplateExpr(expr *Template) (interface{}, error) {
 	exprs := make([]interface{}, len(expr.Expressions()))
 	for i, e := range expr.Expressions() {
