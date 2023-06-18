@@ -148,11 +148,11 @@ func (p *Parser) call() Expr {
 
 func (p *Parser) finishIndex(expr Expr) Expr {
 	index := p.expression()
-	bracket, ok := p.consume(RIGHT_BRACKET)
+	_, ok := p.consume(RIGHT_BRACKET)
 	if !ok {
 		return p.error(fmt.Sprintf("Expect ']' after index expression. got %v", p.peek().lexeme))
 	}
-	return NewIndex(expr, bracket, index)
+	return NewIndex(expr, index)
 }
 
 func (p *Parser) finishCall(expr Expr) Expr {
@@ -163,11 +163,11 @@ func (p *Parser) finishCall(expr Expr) Expr {
 			args = append(args, p.expression())
 		}
 	}
-	paren, ok := p.consume(RIGHT_PAREN)
+	_, ok := p.consume(RIGHT_PAREN)
 	if !ok {
 		return p.error(fmt.Sprintf("Expect ')' after arguments. got %v", p.peek().lexeme))
 	}
-	return NewCall(expr, paren, args)
+	return NewCall(expr, args)
 }
 
 func (p *Parser) primary() Expr {
