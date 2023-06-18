@@ -37,15 +37,15 @@ func (i *Evaluator) SetFunctions(funcs map[string]func(...interface{}) (interfac
 }
 
 func (i *Evaluator) visitBinaryExpr(expr *Binary) (interface{}, error) {
-	left, err := i.interpret(expr.left)
+	left, err := i.interpret(expr.Left())
 	if err != nil {
 		return nil, err
 	}
-	right, err := i.interpret(expr.right)
+	right, err := i.interpret(expr.Right())
 	if err != nil {
 		return nil, err
 	}
-	switch expr.operator.tokenType {
+	switch expr.Operator().Type() {
 	case MINUS:
 		return i.sub(left, right)
 	case SLASH:
@@ -198,23 +198,23 @@ func (i *Evaluator) isEqual(a, b interface{}) bool {
 }
 
 func (i *Evaluator) visitParseErrorExpr(expr *ParseError) (interface{}, error) {
-	return nil, fmt.Errorf("parse error: %s", expr.message)
+	return nil, fmt.Errorf("parse error: %s", expr.Error())
 }
 
 func (i *Evaluator) visitGroupingExpr(expr *Grouping) (interface{}, error) {
-	return i.interpret(expr.expression)
+	return i.interpret(expr.Expression())
 }
 
 func (i *Evaluator) visitLiteralExpr(expr *Literal) (interface{}, error) {
-	return expr.value, nil
+	return expr.Value(), nil
 }
 
 func (i *Evaluator) visitUnaryExpr(expr *Unary) (interface{}, error) {
-	right, err := i.interpret(expr.right)
+	right, err := i.interpret(expr.Right())
 	if err != nil {
 		return nil, err
 	}
-	switch expr.operator.tokenType {
+	switch expr.Operator().Type() {
 	case MINUS:
 		return -(right.(float64)), nil
 	case BANG:
@@ -225,7 +225,7 @@ func (i *Evaluator) visitUnaryExpr(expr *Unary) (interface{}, error) {
 
 func (i *Evaluator) visitTemplateExpr(expr *Template) (interface{}, error) {
 	evaluations := make([]interface{}, 0)
-	for _, e := range expr.expressions {
+	for _, e := range expr.Expressions() {
 		ev, err := i.interpret(e)
 		if err != nil {
 			return nil, err
@@ -244,40 +244,40 @@ func (i *Evaluator) visitTemplateExpr(expr *Template) (interface{}, error) {
 }
 
 func (i *Evaluator) visitTernaryExpr(expr *Ternary) (interface{}, error) {
-	condition, err := i.interpret(expr.condition)
+	condition, err := i.interpret(expr.Condition())
 	if err != nil {
 		return nil, err
 	}
 	if i.isTruthy(condition) {
-		return i.interpret(expr.trueExpr)
+		return i.interpret(expr.TrueExpr())
 	}
-	return i.interpret(expr.falseExpr)
+	return i.interpret(expr.FalseExpr())
 }
 
 func (i *Evaluator) visitVariableExpr(expr *Variable) (interface{}, error) {
-	if fn, ok := i.funcs[expr.name.lexeme]; ok {
+	if fn, ok := i.funcs[expr.Name().Lexeme()]; ok {
 		return fn, nil
 	}
 	return nil, nil
 }
 
 func (i *Evaluator) visitGetExpr(expr *Get) (interface{}, error) {
-	obj, err := i.interpret(expr.object)
+	obj, err := i.interpret(expr.Object())
 	if err != nil {
 		return nil, err
 	}
 
 	// Assume that obj is a map from string to interface{} and get the field.
 	// TODO: Check if obj is actually a map and handle errors.
-	return obj.(map[string]interface{})[expr.name.lexeme], nil
+	return obj.(map[string]interface{})[expr.Name().Lexeme()], nil
 }
 
 func (i *Evaluator) visitIndexExpr(expr *Index) (interface{}, error) {
-	obj, err := i.interpret(expr.object)
+	obj, err := i.interpret(expr.Object())
 	if err != nil {
 		return nil, err
 	}
-	indexValue, err := i.interpret(expr.index)
+	indexValue, err := i.interpret(expr.Index())
 	if err != nil {
 		return nil, err
 	}
@@ -303,14 +303,14 @@ func (i *Evaluator) visitIndexExpr(expr *Index) (interface{}, error) {
 
 func (e *Evaluator) visitCallExpr(expr *Call) (interface{}, error) {
 	args := make([]interface{}, 0)
-	for _, a := range expr.arguments {
+	for _, a := range expr.Arguments() {
 		arg, err := e.interpret(a)
 		if err != nil {
 			return nil, err
 		}
 		args = append(args, arg)
 	}
-	callee, err := e.interpret(expr.callee)
+	callee, err := e.interpret(expr.Callee())
 	if err != nil {
 		return nil, err
 	}
@@ -325,18 +325,18 @@ func (e *Evaluator) visitCallExpr(expr *Call) (interface{}, error) {
 }
 
 func identifyCallee(expr *Call) string {
-	switch callee := expr.callee.(type) {
+	switch callee := expr.Callee().(type) {
 	case *Variable:
-		return callee.name.lexeme
+		return callee.Name().Lexeme()
 	case *Get:
-		return callee.name.lexeme
+		return callee.Name().Lexeme()
 	}
 	return "unknown"
 }
 
 func (i *Evaluator) visitArrayExpr(expr *Array) (interface{}, error) {
 	values := make([]interface{}, 0)
-	for _, v := range expr.values {
+	for _, v := range expr.Values() {
 		value, err := i.interpret(v)
 		if err != nil {
 			return nil, err
