@@ -152,7 +152,7 @@ func (p *Parser) unary() Expr {
 }
 
 // Grammar:
-// call  → primary ( "(" arguments? ")" | "." IDENTIFIER )* ;
+// call → primary ( LPAREN arguments? RPAREN )* ( get )* ;
 func (p *Parser) call() Expr {
 	expr := p.primary()
 	for {
@@ -161,7 +161,7 @@ func (p *Parser) call() Expr {
 		} else if p.match(DOT) {
 			name, ok := p.consume(IDENTIFIER)
 			if !ok {
-				return p.error(fmt.Sprintf("Expect property name after '.' at column %d. got %v", p.current, p.peek().lexeme), p.peek())
+				return p.error(fmt.Sprintf("Expect property name after '.'. got %v", p.peek().lexeme), p.peek())
 			}
 			expr = NewGet(expr, name)
 		} else if p.match(LEFT_BRACKET) {

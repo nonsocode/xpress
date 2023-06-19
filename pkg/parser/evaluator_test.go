@@ -77,6 +77,7 @@ var cases = []SuccessCases{
 		"{{ getDeepObject().deep.object.with.values }}",
 		[]interface{}{3, 2, 1},
 	},
+	{"{{ funcable()() }}", "a function"},
 }
 
 var errorCases = []ErrorCases{
@@ -157,6 +158,11 @@ func createTestTemplateFunctions() map[string]interface{} {
 				}
 			}
 			return true, fmt.Errorf("should not get here")
+		},
+		"funcable": func() func() string {
+			return func() string {
+				return "a function"
+			}
 		},
 	}
 }
