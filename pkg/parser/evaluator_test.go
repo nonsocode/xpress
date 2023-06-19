@@ -147,17 +147,17 @@ func createTestTemplateFunctions() map[string]interface{} {
 			time.Sleep(time.Duration(msec) * time.Millisecond)
 			return true
 		},
-		"longLoop": func() bool {
+		"longLoop": func() (bool, error) {
 			var count int
 			for {
 				count++
 				fmt.Println(count)
 				time.Sleep(1 * time.Second)
-				if count > 10 {
+				if count > 2 {
 					break
 				}
 			}
-			return true
+			return true, fmt.Errorf("should not get here")
 		},
 	}
 }

@@ -23,6 +23,10 @@ const (
 	DefaultTimeout = 5 * time.Hour
 )
 
+var (
+	EvaluationCancelledErrror = NewEvaluationError("evaluation cancelled")
+)
+
 func NewInterpreter() *Evaluator {
 	return &Evaluator{
 		funcs:   make(map[string]interface{}),
@@ -55,6 +59,9 @@ func (i *Evaluator) SetFunctions(funcs map[string]interface{}) error {
 }
 
 func (i *Evaluator) visitBinaryExpr(ctx context.Context, expr *Binary) (interface{}, error) {
+	if i.isContextCancelled(ctx) {
+		return nil, EvaluationCancelledErrror
+	}
 	left, err := i.interpret(ctx, expr.Left())
 	if err != nil {
 		return nil, err
@@ -216,18 +223,30 @@ func (i *Evaluator) isEqual(a, b interface{}) bool {
 }
 
 func (i *Evaluator) visitParseErrorExpr(ctx context.Context, expr *ParseError) (interface{}, error) {
+	if i.isContextCancelled(ctx) {
+		return nil, EvaluationCancelledErrror
+	}
 	return nil, fmt.Errorf("parse error: %s", expr.Error())
 }
 
 func (i *Evaluator) visitGroupingExpr(ctx context.Context, expr *Grouping) (interface{}, error) {
+	if i.isContextCancelled(ctx) {
+		return nil, EvaluationCancelledErrror
+	}
 	return i.interpret(ctx, expr.Expression())
 }
 
 func (i *Evaluator) visitLiteralExpr(ctx context.Context, expr *Literal) (interface{}, error) {
+	if i.isContextCancelled(ctx) {
+		return nil, EvaluationCancelledErrror
+	}
 	return expr.Value(), nil
 }
 
 func (i *Evaluator) visitUnaryExpr(ctx context.Context, expr *Unary) (interface{}, error) {
+	if i.isContextCancelled(ctx) {
+		return nil, EvaluationCancelledErrror
+	}
 	right, err := i.interpret(ctx, expr.Right())
 	if err != nil {
 		return nil, err
@@ -242,6 +261,9 @@ func (i *Evaluator) visitUnaryExpr(ctx context.Context, expr *Unary) (interface{
 }
 
 func (i *Evaluator) visitTemplateExpr(ctx context.Context, expr *Template) (interface{}, error) {
+	if i.isContextCancelled(ctx) {
+		return nil, EvaluationCancelledErrror
+	}
 	evaluations := make([]interface{}, 0)
 	for _, e := range expr.Expressions() {
 		ev, err := i.interpret(ctx, e)
@@ -262,6 +284,9 @@ func (i *Evaluator) visitTemplateExpr(ctx context.Context, expr *Template) (inte
 }
 
 func (i *Evaluator) visitTernaryExpr(ctx context.Context, expr *Ternary) (interface{}, error) {
+	if i.isContextCancelled(ctx) {
+		return nil, EvaluationCancelledErrror
+	}
 	condition, err := i.interpret(ctx, expr.Condition())
 	if err != nil {
 		return nil, err
@@ -273,6 +298,9 @@ func (i *Evaluator) visitTernaryExpr(ctx context.Context, expr *Ternary) (interf
 }
 
 func (i *Evaluator) visitVariableExpr(ctx context.Context, expr *Variable) (interface{}, error) {
+	if i.isContextCancelled(ctx) {
+		return nil, EvaluationCancelledErrror
+	}
 	if fn, ok := i.funcs[expr.Name().Lexeme()]; ok {
 		return fn, nil
 	}
@@ -280,6 +308,9 @@ func (i *Evaluator) visitVariableExpr(ctx context.Context, expr *Variable) (inte
 }
 
 func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, error) {
+	if i.isContextCancelled(ctx) {
+		return nil, EvaluationCancelledErrror
+	}
 	obj, err := i.interpret(ctx, expr.Object())
 	if err != nil {
 		return nil, err
@@ -291,6 +322,9 @@ func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, e
 }
 
 func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) (interface{}, error) {
+	if i.isContextCancelled(ctx) {
+		return nil, EvaluationCancelledErrror
+	}
 	obj, err := i.interpret(ctx, expr.Object())
 	if err != nil {
 		return nil, err
@@ -320,6 +354,9 @@ func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) (interface{
 }
 
 func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) (interface{}, error) {
+	if e.isContextCancelled(ctx) {
+		return nil, EvaluationCancelledErrror
+	}
 	args := make([]interface{}, 0)
 	for _, a := range expr.Arguments() {
 		arg, err := e.interpret(ctx, a)
@@ -423,6 +460,9 @@ func identifyCallee(expr *Call) string {
 }
 
 func (i *Evaluator) visitArrayExpr(ctx context.Context, expr *Array) (interface{}, error) {
+	if i.isContextCancelled(ctx) {
+		return nil, EvaluationCancelledErrror
+	}
 	values := make([]interface{}, 0)
 	for _, v := range expr.Values() {
 		value, err := i.interpret(ctx, v)
@@ -456,8 +496,6 @@ func (i *Evaluator) Evaluate(expr Expr) (interface{}, error) {
 			if r := recover(); r != nil {
 				errChan <- NewEvaluationError("%v", r)
 			}
-			close(result)
-			close(errChan)
 		}()
 		obj, err := i.interpret(ctx, expr)
 		if err != nil {
@@ -477,6 +515,18 @@ func (i *Evaluator) Evaluate(expr Expr) (interface{}, error) {
 	}
 }
 
+func (i *Evaluator) isContextCancelled(ctx context.Context) bool {
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
+}
+
 func (i *Evaluator) interpret(ctx context.Context, expr Expr) (interface{}, error) {
+	if i.isContextCancelled(ctx) {
+		return nil, EvaluationCancelledErrror
+	}
 	return expr.Accept(ctx, i)
 }
