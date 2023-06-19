@@ -78,7 +78,7 @@ var cases = []SuccessCases{
 		"{{ getDeepObject().deep.object.with.values }}",
 		[]interface{}{3, 2, 1},
 	},
-	{"{{ funcable()() }}", "a function"},
+	{"{{ funcable()('host') }}", "a function with host"},
 }
 
 var errorCases = []ErrorCases{
@@ -179,9 +179,9 @@ func createTestTemplateFunctions() map[string]interface{} {
 			}
 			return true, nil
 		},
-		"funcable": func() func() string {
-			return func() string {
-				return "a function"
+		"funcable": func() any {
+			return func(ctx context.Context, stuff string) string {
+				return "a function with " + stuff
 			}
 		},
 	}
