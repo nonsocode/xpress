@@ -119,7 +119,6 @@ func TestExampleParserErrors(t *testing.T) {
 		assert.NotNil(t, err)
 		assert.Equal(t, c.msg, err.Error())
 	}
-	time.Sleep(11 * time.Second)
 }
 
 func createTestTemplateFunctions() map[string]interface{} {
