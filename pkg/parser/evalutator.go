@@ -2,11 +2,12 @@ package parser
 
 import (
 	"fmt"
+	"reflect"
 )
 
 type (
 	Evaluator struct {
-		funcs map[string]func(...interface{}) (interface{}, error)
+		funcs map[string]interface{}
 	}
 
 	EvaluationError struct {
@@ -16,7 +17,7 @@ type (
 
 func NewInterpreter() *Evaluator {
 	return &Evaluator{
-		funcs: make(map[string]func(...interface{}) (interface{}, error)),
+		funcs: make(map[string]interface{}),
 	}
 }
 
@@ -28,12 +29,13 @@ func (e *EvaluationError) Error() string {
 	return e.message
 }
 
-func (i *Evaluator) AddFunc(name string, fn func(...interface{}) (interface{}, error)) {
+func (i *Evaluator) AddFunc(name string, fn interface{}) error {
 	i.funcs[name] = fn
+	return nil
 }
 
-func (i *Evaluator) SetFunctions(funcs map[string]func(...interface{}) (interface{}, error)) {
-	i.funcs = funcs
+func (i *Evaluator) SetFunctions(funcs map[string]interface{}) error {
+	return nil
 }
 
 func (i *Evaluator) visitBinaryExpr(expr *Binary) (interface{}, error) {
@@ -314,14 +316,79 @@ func (e *Evaluator) visitCallExpr(expr *Call) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	if fn, ok := callee.(func(...interface{}) (interface{}, error)); ok {
-		return fn(args...)
+	fn := reflect.ValueOf(callee)
+	if fn.Kind() != reflect.Func {
+		return nil, NewEvaluationError(
+			"cannot call non-function '%s' of type %T",
+			identifyCallee(expr),
+			callee,
+		)
 	}
-	return nil, NewEvaluationError(
-		"cannot call non-function '%s' of type %T",
-		identifyCallee(expr),
-		callee,
-	)
+	if fn.Type().NumOut() > 2 {
+		return nil, NewEvaluationError(
+			"function '%s' returns more than 2 values",
+			identifyCallee(expr),
+		)
+	}
+	if fn.Type().NumOut() == 2 {
+		if fn.Type().Out(1) != reflect.TypeOf((*error)(nil)).Elem() {
+			return nil, NewEvaluationError(
+				"function '%s' second return value must be of type error",
+				identifyCallee(expr),
+			)
+		}
+	}
+
+	isVariadic := fn.Type().IsVariadic()
+	if !isVariadic && fn.Type().NumIn() != len(args) {
+		return nil, NewEvaluationError(
+			"function '%s' expects %d arguments, got %d",
+			identifyCallee(expr),
+			fn.Type().NumIn(),
+			len(args),
+		)
+	}
+
+	in := make([]reflect.Value, len(args))
+	variadicIndex := fn.Type().NumIn() - 1
+	for i, arg := range args {
+		if isVariadic && i >= variadicIndex {
+			// Variadic argument
+			paramType := fn.Type().In(variadicIndex).Elem()
+			for _, a := range args[i:] {
+				if !reflect.TypeOf(a).AssignableTo(paramType) {
+					return nil, NewEvaluationError(
+						"variadic argument '%v' is not assignable to parameter '%s'",
+						arg,
+						paramType.String(),
+					)
+				}
+			}
+			in[i] = reflect.ValueOf(args[i:])
+			break
+		}
+		argValue := reflect.ValueOf(arg)
+		paramType := fn.Type().In(i)
+
+		if !argValue.Type().AssignableTo(paramType) {
+			return nil, NewEvaluationError(
+				"argument '%v' is not assignable to parameter '%s'",
+				arg,
+				paramType.String(),
+			)
+		}
+
+		in[i] = argValue
+	}
+
+	out := fn.Call(in)
+	if len(out) == 2 {
+		if out[1].Interface() != nil {
+			return nil, out[1].Interface().(error)
+		}
+	}
+	return out[0].Interface(), nil
+
 }
 
 func identifyCallee(expr *Call) string {
