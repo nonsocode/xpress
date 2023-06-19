@@ -393,7 +393,13 @@ func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) (interface{},
 	}
 
 	isVariadic := fn.Type().IsVariadic()
-	if !isVariadic && fn.Type().NumIn() != len(args) {
+	var argIndex int
+	in := make([]reflect.Value, 0)
+	if fn.Type().NumIn() > 0 && fn.Type().In(0) == reflect.TypeOf((*context.Context)(nil)).Elem() {
+		in = append(in, reflect.ValueOf(ctx))
+		argIndex = 1
+	}
+	if !isVariadic && fn.Type().NumIn() != (len(args)+argIndex) {
 		return nil, NewEvaluationError(
 			"function '%s' expects %d arguments, got %d",
 			identifyCallee(expr),
@@ -402,10 +408,9 @@ func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) (interface{},
 		)
 	}
 
-	in := make([]reflect.Value, 0)
 	variadicIndex := fn.Type().NumIn() - 1
 	for i, arg := range args {
-		if isVariadic && i >= variadicIndex {
+		if isVariadic && i+argIndex >= variadicIndex {
 			// Variadic argument
 			varsType := fn.Type().In(variadicIndex)
 			paramType := varsType.Elem()
@@ -422,7 +427,7 @@ func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) (interface{},
 			break
 		}
 		argValue := reflect.ValueOf(arg)
-		paramType := fn.Type().In(i)
+		paramType := fn.Type().In(i + argIndex)
 
 		if !argValue.Type().AssignableTo(paramType) {
 			// attempt to convert arg to paramType

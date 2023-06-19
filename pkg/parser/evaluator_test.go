@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -93,7 +94,7 @@ var errorCases = []ErrorCases{
 		"evaluation timed out after 5ms",
 	},
 	{
-		"{{ longLoop() }}",
+		"{{ longLoopWithContext() }}",
 		"evaluation timed out after 5ms",
 	},
 }
@@ -108,6 +109,7 @@ func TestExampleParser(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, c.expect, res)
 	}
+
 }
 
 func TestExampleParserErrors(t *testing.T) {
@@ -125,14 +127,14 @@ func TestExampleParserErrors(t *testing.T) {
 func createTestTemplateFunctions() map[string]interface{} {
 
 	return map[string]interface{}{
-		"concat": func(args ...string) (interface{}, error) {
+		"concat": func(ctx context.Context, args ...string) (interface{}, error) {
 			builder := strings.Builder{}
 			for _, arg := range args {
 				builder.WriteString(arg)
 			}
 			return builder.String(), nil
 		},
-		"getDeepObject": func(args ...interface{}) (interface{}, error) {
+		"getDeepObject": func(ctx context.Context, args ...interface{}) (interface{}, error) {
 			return map[string]interface{}{
 				"deep": map[string]interface{}{
 					"object": map[string]interface{}{
@@ -151,13 +153,31 @@ func createTestTemplateFunctions() map[string]interface{} {
 			var count int
 			for {
 				count++
-				fmt.Println(count)
+				fmt.Println(count, "longLoop")
+				time.Sleep(1 * time.Second)
+				if count > 10 {
+					break
+				}
+			}
+
+			return true, fmt.Errorf("should not get here")
+		},
+		"longLoopWithContext": func(ctx context.Context) (bool, error) {
+			var count int
+			for {
+				count++
+				fmt.Println(count, "longLoopWithContext")
 				time.Sleep(1 * time.Second)
 				if count > 2 {
 					break
 				}
+				select {
+				case <-ctx.Done():
+					return false, ctx.Err()
+				default:
+				}
 			}
-			return true, fmt.Errorf("should not get here")
+			return true, nil
 		},
 		"funcable": func() func() string {
 			return func() string {
