@@ -30,6 +30,10 @@ func NewInterpreter() *Evaluator {
 	}
 }
 
+func (i *Evaluator) SetTimeout(timeout time.Duration) {
+	i.timeout = timeout
+}
+
 func NewEvaluationError(message string, args ...interface{}) *EvaluationError {
 	return &EvaluationError{message: fmt.Sprintf(message, args...)}
 }
@@ -384,11 +388,16 @@ func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) (interface{},
 		paramType := fn.Type().In(i)
 
 		if !argValue.Type().AssignableTo(paramType) {
-			return nil, NewEvaluationError(
-				"argument '%v' is not assignable to parameter '%s'",
-				arg,
-				paramType.String(),
-			)
+			// attempt to convert arg to paramType
+			if argValue.Type().ConvertibleTo(paramType) {
+				argValue = argValue.Convert(paramType)
+			} else {
+				return nil, NewEvaluationError(
+					"argument '%v' is not assignable to parameter '%s'",
+					arg,
+					paramType.String(),
+				)
+			}
 		}
 
 		in = append(in, argValue)

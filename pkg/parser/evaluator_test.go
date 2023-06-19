@@ -1,8 +1,10 @@
 package parser
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -85,11 +87,20 @@ var errorCases = []ErrorCases{
 		"{{ nonexistentFunction() }}",
 		"cannot call non-function 'nonexistentFunction' of type <nil>",
 	},
+	{
+		"{{ waitMs(10) }}",
+		"evaluation timed out after 5ms",
+	},
+	{
+		"{{ longLoop() }}",
+		"evaluation timed out after 5ms",
+	},
 }
 
 func TestExampleParser(t *testing.T) {
 	evaluator := NewInterpreter()
 	evaluator.SetFunctions(createTestTemplateFunctions())
+	evaluator.SetTimeout(5 * time.Millisecond)
 	for _, c := range cases {
 		ast := NewParser(c.template).Parse()
 		res, err := evaluator.Evaluate(ast)
@@ -100,12 +111,15 @@ func TestExampleParser(t *testing.T) {
 
 func TestExampleParserErrors(t *testing.T) {
 	evaluator := NewInterpreter()
+	evaluator.SetTimeout(5 * time.Millisecond)
+	evaluator.SetFunctions(createTestTemplateFunctions())
 	for _, c := range errorCases {
 		ast := NewParser(c.template).Parse()
 		_, err := evaluator.Evaluate(ast)
 		assert.NotNil(t, err)
 		assert.Equal(t, c.msg, err.Error())
 	}
+	time.Sleep(11 * time.Second)
 }
 
 func createTestTemplateFunctions() map[string]interface{} {
@@ -128,6 +142,22 @@ func createTestTemplateFunctions() map[string]interface{} {
 					},
 				},
 			}, nil
+		},
+		"waitMs": func(msec int) bool {
+			time.Sleep(time.Duration(msec) * time.Millisecond)
+			return true
+		},
+		"longLoop": func() bool {
+			var count int
+			for {
+				count++
+				fmt.Println(count)
+				time.Sleep(1 * time.Second)
+				if count > 10 {
+					break
+				}
+			}
+			return true
 		},
 	}
 }
