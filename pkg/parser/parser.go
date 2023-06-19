@@ -22,6 +22,8 @@ func (p *Parser) Parse() Expr {
 	return p.template()
 }
 
+// Grammar:
+// template  → ( valueTemplate | TEXT )* ;
 func (p *Parser) template() Expr {
 	var exprs []Expr
 	for !p.isAtEnd() {
@@ -34,6 +36,8 @@ func (p *Parser) template() Expr {
 	return NewTemplate(exprs)
 }
 
+// Grammar:
+// valueTemplate → TEMPLATE_START expression TEMPLATE_END ;
 func (p *Parser) valueTemplate() Expr {
 	expr := p.expression()
 	_, ok := p.consume(TEMPLATE_RIGHT_BRACE)
@@ -43,15 +47,21 @@ func (p *Parser) valueTemplate() Expr {
 	return expr
 }
 
+// Grammar:
+// TEXT → [^\{\}]+ ;
 func (p *Parser) text() Expr {
 	token := p.advance()
 	return NewLiteral(token.lexeme, token.lexeme)
 }
 
+// Grammar:
+// expression  → ternary ;
 func (p *Parser) expression() Expr {
 	return p.ternary()
 }
 
+// Grammar:
+// ternary → logicalOr ( QMARK expression COLON expression )? ;
 func (p *Parser) ternary() Expr {
 	expr := p.logicalOr()
 	if p.match(QMARK) {
@@ -66,6 +76,8 @@ func (p *Parser) ternary() Expr {
 	return expr
 }
 
+// Grammar:
+// logicalOr  → logicalAnd ( OR logicalAnd )* ;
 func (p *Parser) logicalOr() Expr {
 	expr := p.logicalAnd()
 	for p.match(OR) {
@@ -76,6 +88,8 @@ func (p *Parser) logicalOr() Expr {
 	return expr
 }
 
+// Grammar:
+// logicalAnd  → equality ( AND equality )* ;
 func (p *Parser) logicalAnd() Expr {
 	expr := p.equality()
 	for p.match(AND) {
@@ -86,6 +100,8 @@ func (p *Parser) logicalAnd() Expr {
 	return expr
 }
 
+// Grammar:
+// equality  → comparison ( ( BANG_EQUAL | EQUAL_EQUAL ) comparison )* ;
 func (p *Parser) equality() Expr {
 	expr := p.comparison()
 	for p.match(BANG_EQUAL, EQUAL_EQUAL) {
@@ -96,6 +112,8 @@ func (p *Parser) equality() Expr {
 	return expr
 }
 
+// Grammar:
+// comparison  → term ( ( GREATER | GREATER_EQUAL | LESS | LESS_EQUAL ) term )* ;
 func (p *Parser) comparison() Expr {
 	expr := p.term()
 	for p.match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, BANG_EQUAL, EQUAL_EQUAL) {
@@ -104,6 +122,8 @@ func (p *Parser) comparison() Expr {
 	return expr
 }
 
+// Grammar:
+// term  → factor ( ( MINUS | PLUS ) factor )* ;
 func (p *Parser) term() Expr {
 	expr := p.factor()
 	for p.match(MINUS, PLUS) {
@@ -112,6 +132,8 @@ func (p *Parser) term() Expr {
 	return expr
 }
 
+// Grammar:
+// factor  → unary ( ( SLASH | STAR ) unary )* ;
 func (p *Parser) factor() Expr {
 	expr := p.unary()
 	for p.match(SLASH, STAR) {
@@ -120,6 +142,8 @@ func (p *Parser) factor() Expr {
 	return expr
 }
 
+// Grammar:
+// unary  → ( BANG | MINUS ) unary | call ;
 func (p *Parser) unary() Expr {
 	if p.match(BANG, MINUS) {
 		return NewUnary(p.previous(), p.unary())
@@ -127,6 +151,8 @@ func (p *Parser) unary() Expr {
 	return p.call()
 }
 
+// Grammar:
+// call  → primary ( "(" arguments? ")" | "." IDENTIFIER )* ;
 func (p *Parser) call() Expr {
 	expr := p.primary()
 	for {
@@ -171,6 +197,8 @@ func (p *Parser) finishCall(expr Expr) Expr {
 	return NewCall(expr, args)
 }
 
+// Grammar:
+// primary  → "true" | "false" | "nil" | NUMBER | STRING | IDENTIFIER | LPAREN expression RPAREN | array ;
 func (p *Parser) primary() Expr {
 	if p.match(FALSE) {
 		return NewLiteral(false, "false")
@@ -208,6 +236,8 @@ func (p *Parser) primary() Expr {
 	return p.error(fmt.Sprintf("Expect expression. got %v", p.peek().lexeme), p.peek())
 }
 
+// Grammar:
+// array  → LBRACKET ( expression ( COMMA expression )* )? RBRACKET ;
 func (p *Parser) array() Expr {
 	values := make([]Expr, 0)
 	if !p.check(RIGHT_BRACKET) {
