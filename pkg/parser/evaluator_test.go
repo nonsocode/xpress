@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
@@ -79,9 +78,9 @@ var cases = []SuccessCases{
 }
 
 var errorCases = []ErrorCases{
-	{"{{ 5 > }}", "parse error: Expect expression. got }}"},
-	{"{{ 5 ", "parse error: Expect '}}' after expression. got unclosed action"},
-	{"{{ 5 6 }}", "parse error: Expect '}}' after expression. got 6"},
+	{"{{ 5 > }}", "parse error: Error at position 7. Expect expression. got }}"},
+	{"{{ 5 ", "parse error: Error at position 5. Expect '}}' after expression. got unclosed action"},
+	{"{{ 5 6 }}", "parse error: Error at position 5. Expect '}}' after expression. got 6"},
 	{
 		"{{ nonexistentFunction() }}",
 		"cannot call non-function 'nonexistentFunction' of type <nil>",
@@ -109,16 +108,13 @@ func TestExampleParserErrors(t *testing.T) {
 	}
 }
 
-func createTestTemplateFunctions() map[string]func(...interface{}) (interface{}, error) {
+func createTestTemplateFunctions() map[string]interface{} {
 
-	return map[string]func(...interface{}) (interface{}, error){
-		"concat": func(args ...interface{}) (interface{}, error) {
+	return map[string]interface{}{
+		"concat": func(args ...string) (interface{}, error) {
 			builder := strings.Builder{}
 			for _, arg := range args {
-				if _, ok := arg.(string); !ok {
-					return nil, errors.New("concat only Accepts strings")
-				}
-				builder.WriteString(arg.(string))
+				builder.WriteString(arg)
 			}
 			return builder.String(), nil
 		},

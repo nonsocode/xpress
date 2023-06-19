@@ -1,13 +1,14 @@
 package parser
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 )
 
 type (
 	Expr interface {
-		Accept(v Visitor) (interface{}, error)
+		Accept(context.Context, Visitor) (interface{}, error)
 	}
 )
 
@@ -37,7 +38,7 @@ func (p *Parser) valueTemplate() Expr {
 	expr := p.expression()
 	_, ok := p.consume(TEMPLATE_RIGHT_BRACE)
 	if !ok {
-		return p.error(fmt.Sprintf("Expect '}}' after expression. got %v", p.peek().lexeme))
+		return p.error(fmt.Sprintf("Expect '}}' after expression. got %v", p.peek().lexeme), p.peek())
 	}
 	return expr
 }
@@ -57,7 +58,7 @@ func (p *Parser) ternary() Expr {
 		trueExpr := p.expression()
 		_, ok := p.consume(COLON)
 		if !ok {
-			return p.error(fmt.Sprintf("Expect ':' after true expression. got %v", p.peek().lexeme))
+			return p.error(fmt.Sprintf("Expect ':' after true expression. got %v", p.peek().lexeme), p.peek())
 		}
 		falseExpr := p.expression()
 		expr = NewTernary(expr, trueExpr, falseExpr)
@@ -134,7 +135,7 @@ func (p *Parser) call() Expr {
 		} else if p.match(DOT) {
 			name, ok := p.consume(IDENTIFIER)
 			if !ok {
-				return p.error(fmt.Sprintf("Expect property name after '.' at column %d. got %v", p.current, p.peek().lexeme))
+				return p.error(fmt.Sprintf("Expect property name after '.' at column %d. got %v", p.current, p.peek().lexeme), p.peek())
 			}
 			expr = NewGet(expr, name)
 		} else if p.match(LEFT_BRACKET) {
@@ -150,7 +151,7 @@ func (p *Parser) finishIndex(expr Expr) Expr {
 	index := p.expression()
 	_, ok := p.consume(RIGHT_BRACKET)
 	if !ok {
-		return p.error(fmt.Sprintf("Expect ']' after index expression. got %v", p.peek().lexeme))
+		return p.error(fmt.Sprintf("Expect ']' after index expression. got %v", p.peek().lexeme), p.peek())
 	}
 	return NewIndex(expr, index)
 }
@@ -165,7 +166,7 @@ func (p *Parser) finishCall(expr Expr) Expr {
 	}
 	_, ok := p.consume(RIGHT_PAREN)
 	if !ok {
-		return p.error(fmt.Sprintf("Expect ')' after arguments. got %v", p.peek().lexeme))
+		return p.error(fmt.Sprintf("Expect ')' after arguments. got %v", p.peek().lexeme), p.peek())
 	}
 	return NewCall(expr, args)
 }
@@ -196,7 +197,7 @@ func (p *Parser) primary() Expr {
 		expr := p.expression()
 		_, ok := p.consume(RIGHT_PAREN)
 		if !ok {
-			return p.error(fmt.Sprintf("Expect ')' after expression. got %v", p.peek().lexeme))
+			return p.error(fmt.Sprintf("Expect ')' after expression. got %v", p.peek().lexeme), p.peek())
 		}
 		return NewGrouping(expr)
 	}
@@ -204,7 +205,7 @@ func (p *Parser) primary() Expr {
 		return p.array()
 	}
 
-	return p.error(fmt.Sprintf("Expect expression. got %v", p.peek().lexeme))
+	return p.error(fmt.Sprintf("Expect expression. got %v", p.peek().lexeme), p.peek())
 }
 
 func (p *Parser) array() Expr {
@@ -217,7 +218,7 @@ func (p *Parser) array() Expr {
 	}
 	_, ok := p.consume(RIGHT_BRACKET)
 	if !ok {
-		return p.error(fmt.Sprintf("Expect ']' after array expression. got %v", p.peek().lexeme))
+		return p.error(fmt.Sprintf("Expect ']' after array expression. got %v", p.peek().lexeme), p.peek())
 	}
 
 	return NewArray(values)
@@ -230,8 +231,8 @@ func (p *Parser) consume(tokenType TokenType) (Token, bool) {
 	return Token{}, false
 }
 
-func (p *Parser) error(errorMessage string) *ParseError {
-	return &ParseError{message: errorMessage}
+func (p *Parser) error(errorMessage string, token Token) *ParseError {
+	return &ParseError{message: errorMessage, token: token}
 }
 
 func (p *Parser) match(types ...TokenType) bool {

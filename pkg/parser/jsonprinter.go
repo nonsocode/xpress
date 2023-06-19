@@ -1,6 +1,9 @@
 package parser
 
-import "encoding/json"
+import (
+	"context"
+	"encoding/json"
+)
 
 type (
 	JSONPrinter struct { // implements Visitor
@@ -83,9 +86,9 @@ func NewJSONPrinter() *JSONPrinter {
 	return &JSONPrinter{}
 }
 
-func (jp *JSONPrinter) visitBinaryExpr(expr *Binary) (interface{}, error) {
-	left, _ := expr.Left().Accept(jp)
-	right, _ := expr.Right().Accept(jp)
+func (jp *JSONPrinter) visitBinaryExpr(ctx context.Context, expr *Binary) (interface{}, error) {
+	left, _ := expr.Left().Accept(ctx, jp)
+	right, _ := expr.Right().Accept(ctx, jp)
 	return &JBinary{
 		JNode:    JNode{Type: "Binary"},
 		Left:     left,
@@ -94,15 +97,15 @@ func (jp *JSONPrinter) visitBinaryExpr(expr *Binary) (interface{}, error) {
 	}, nil
 }
 
-func (jp *JSONPrinter) visitGroupingExpr(expr *Grouping) (interface{}, error) {
-	expression, _ := expr.Expression().Accept(jp)
+func (jp *JSONPrinter) visitGroupingExpr(ctx context.Context, expr *Grouping) (interface{}, error) {
+	expression, _ := expr.Expression().Accept(ctx, jp)
 	return &JGrouping{
 		JNode:      JNode{Type: "Grouping"},
 		Expression: expression,
 	}, nil
 }
 
-func (jp *JSONPrinter) visitLiteralExpr(expr *Literal) (interface{}, error) {
+func (jp *JSONPrinter) visitLiteralExpr(ctx context.Context, expr *Literal) (interface{}, error) {
 	return &JLiteral{
 		JNode: JNode{Type: "Literal"},
 		Value: expr.Value(),
@@ -110,8 +113,8 @@ func (jp *JSONPrinter) visitLiteralExpr(expr *Literal) (interface{}, error) {
 	}, nil
 }
 
-func (jp *JSONPrinter) visitUnaryExpr(expr *Unary) (interface{}, error) {
-	right, _ := expr.Right().Accept(jp)
+func (jp *JSONPrinter) visitUnaryExpr(ctx context.Context, expr *Unary) (interface{}, error) {
+	right, _ := expr.Right().Accept(ctx, jp)
 	return &JUnary{
 		JNode:    JNode{Type: "Unary"},
 		Operator: expr.Operator().Type().String(),
@@ -119,10 +122,10 @@ func (jp *JSONPrinter) visitUnaryExpr(expr *Unary) (interface{}, error) {
 	}, nil
 }
 
-func (jp *JSONPrinter) visitTemplateExpr(expr *Template) (interface{}, error) {
+func (jp *JSONPrinter) visitTemplateExpr(ctx context.Context, expr *Template) (interface{}, error) {
 	exprs := make([]interface{}, len(expr.Expressions()))
 	for i, e := range expr.Expressions() {
-		exprs[i], _ = e.Accept(jp)
+		exprs[i], _ = e.Accept(ctx, jp)
 	}
 	return &JTemplate{
 		JNode: JNode{Type: "Template"},
@@ -130,10 +133,10 @@ func (jp *JSONPrinter) visitTemplateExpr(expr *Template) (interface{}, error) {
 	}, nil
 }
 
-func (jp *JSONPrinter) visitTernaryExpr(expr *Ternary) (interface{}, error) {
-	cond, _ := expr.Condition().Accept(jp)
-	then, _ := expr.TrueExpr().Accept(jp)
-	els, _ := expr.FalseExpr().Accept(jp)
+func (jp *JSONPrinter) visitTernaryExpr(ctx context.Context, expr *Ternary) (interface{}, error) {
+	cond, _ := expr.Condition().Accept(ctx, jp)
+	then, _ := expr.TrueExpr().Accept(ctx, jp)
+	els, _ := expr.FalseExpr().Accept(ctx, jp)
 	return &JTernary{
 		JNode: JNode{Type: "Ternary"},
 		Cond:  cond,
@@ -142,8 +145,8 @@ func (jp *JSONPrinter) visitTernaryExpr(expr *Ternary) (interface{}, error) {
 	}, nil
 }
 
-func (jp *JSONPrinter) visitGetExpr(expr *Get) (interface{}, error) {
-	obj, _ := expr.Object().Accept(jp)
+func (jp *JSONPrinter) visitGetExpr(ctx context.Context, expr *Get) (interface{}, error) {
+	obj, _ := expr.Object().Accept(ctx, jp)
 
 	return &JGet{
 		JNode:      JNode{Type: "Get"},
@@ -152,9 +155,9 @@ func (jp *JSONPrinter) visitGetExpr(expr *Get) (interface{}, error) {
 	}, nil
 }
 
-func (jp *JSONPrinter) visitIndexExpr(expr *Index) (interface{}, error) {
-	obj, _ := expr.Object().Accept(jp)
-	index, _ := expr.Index().Accept(jp)
+func (jp *JSONPrinter) visitIndexExpr(ctx context.Context, expr *Index) (interface{}, error) {
+	obj, _ := expr.Object().Accept(ctx, jp)
+	index, _ := expr.Index().Accept(ctx, jp)
 	return &JIndex{
 		JNode:  JNode{Type: "Index"},
 		Object: obj,
@@ -162,18 +165,18 @@ func (jp *JSONPrinter) visitIndexExpr(expr *Index) (interface{}, error) {
 	}, nil
 }
 
-func (jp *JSONPrinter) visitVariableExpr(expr *Variable) (interface{}, error) {
+func (jp *JSONPrinter) visitVariableExpr(ctx context.Context, expr *Variable) (interface{}, error) {
 	return &JVariable{
 		JNode: JNode{Type: "Variable"},
 		Name:  expr.Name().String(),
 	}, nil
 }
 
-func (jp *JSONPrinter) visitCallExpr(expr *Call) (interface{}, error) {
-	callee, _ := expr.Callee().Accept(jp)
+func (jp *JSONPrinter) visitCallExpr(ctx context.Context, expr *Call) (interface{}, error) {
+	callee, _ := expr.Callee().Accept(ctx, jp)
 	args := make([]interface{}, len(expr.Arguments()))
 	for i, a := range expr.Arguments() {
-		args[i], _ = a.Accept(jp)
+		args[i], _ = a.Accept(ctx, jp)
 	}
 	return &JCall{
 		JNode:     JNode{Type: "Call"},
@@ -182,10 +185,10 @@ func (jp *JSONPrinter) visitCallExpr(expr *Call) (interface{}, error) {
 	}, nil
 }
 
-func (jp *JSONPrinter) visitArrayExpr(expr *Array) (interface{}, error) {
+func (jp *JSONPrinter) visitArrayExpr(ctx context.Context, expr *Array) (interface{}, error) {
 	values := make([]interface{}, len(expr.Values()))
 	for i, v := range expr.Values() {
-		values[i], _ = v.Accept(jp)
+		values[i], _ = v.Accept(ctx, jp)
 	}
 	return &JArray{
 		JNode:  JNode{Type: "Array"},
@@ -193,7 +196,7 @@ func (jp *JSONPrinter) visitArrayExpr(expr *Array) (interface{}, error) {
 	}, nil
 }
 
-func (jp *JSONPrinter) visitParseErrorExpr(err *ParseError) (interface{}, error) {
+func (jp *JSONPrinter) visitParseErrorExpr(ctx context.Context, err *ParseError) (interface{}, error) {
 	return &JParseError{
 		JNode:   JNode{Type: "ParseError"},
 		Message: err.Error(),
@@ -201,7 +204,8 @@ func (jp *JSONPrinter) visitParseErrorExpr(err *ParseError) (interface{}, error)
 }
 
 func (jp *JSONPrinter) Print(expr Expr) (string, error) {
-	j, err := expr.Accept(jp)
+	ctx := context.Background()
+	j, err := expr.Accept(ctx, jp)
 	if err != nil {
 		return "", err
 	}

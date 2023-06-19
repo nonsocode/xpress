@@ -1,21 +1,23 @@
 package parser
 
+import "context"
+
 type (
 	Visitor interface {
-		visitBinaryExpr(expr *Binary) (interface{}, error)
-		visitGroupingExpr(expr *Grouping) (interface{}, error)
-		visitLiteralExpr(expr *Literal) (interface{}, error)
-		visitUnaryExpr(expr *Unary) (interface{}, error)
+		visitBinaryExpr(context.Context, *Binary) (interface{}, error)
+		visitGroupingExpr(context.Context, *Grouping) (interface{}, error)
+		visitLiteralExpr(context.Context, *Literal) (interface{}, error)
+		visitUnaryExpr(context.Context, *Unary) (interface{}, error)
 
-		visitTemplateExpr(expr *Template) (interface{}, error)
-		visitTernaryExpr(expr *Ternary) (interface{}, error)
-		visitGetExpr(expr *Get) (interface{}, error)
-		visitIndexExpr(expr *Index) (interface{}, error)
-		visitVariableExpr(expr *Variable) (interface{}, error)
-		visitCallExpr(expr *Call) (interface{}, error)
-		visitArrayExpr(expr *Array) (interface{}, error)
+		visitTemplateExpr(context.Context, *Template) (interface{}, error)
+		visitTernaryExpr(context.Context, *Ternary) (interface{}, error)
+		visitGetExpr(context.Context, *Get) (interface{}, error)
+		visitIndexExpr(context.Context, *Index) (interface{}, error)
+		visitVariableExpr(context.Context, *Variable) (interface{}, error)
+		visitCallExpr(context.Context, *Call) (interface{}, error)
+		visitArrayExpr(context.Context, *Array) (interface{}, error)
 
-		visitParseErrorExpr(err *ParseError) (interface{}, error)
+		visitParseErrorExpr(context.Context, *ParseError) (interface{}, error)
 	}
 	Interpreter interface {
 		Evaluate(expr Expr) (interface{}, error)

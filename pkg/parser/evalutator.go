@@ -1,13 +1,16 @@
 package parser
 
 import (
+	"context"
 	"fmt"
 	"reflect"
+	"time"
 )
 
 type (
 	Evaluator struct {
-		funcs map[string]interface{}
+		funcs   map[string]interface{}
+		timeout time.Duration
 	}
 
 	EvaluationError struct {
@@ -15,9 +18,15 @@ type (
 	}
 )
 
+const (
+	// DefaultTimeout is the default timeout for evaluating expressions.
+	DefaultTimeout = 5 * time.Hour
+)
+
 func NewInterpreter() *Evaluator {
 	return &Evaluator{
-		funcs: make(map[string]interface{}),
+		funcs:   make(map[string]interface{}),
+		timeout: DefaultTimeout,
 	}
 }
 
@@ -35,15 +44,18 @@ func (i *Evaluator) AddFunc(name string, fn interface{}) error {
 }
 
 func (i *Evaluator) SetFunctions(funcs map[string]interface{}) error {
+	for name, fn := range funcs {
+		i.AddFunc(name, fn)
+	}
 	return nil
 }
 
-func (i *Evaluator) visitBinaryExpr(expr *Binary) (interface{}, error) {
-	left, err := i.interpret(expr.Left())
+func (i *Evaluator) visitBinaryExpr(ctx context.Context, expr *Binary) (interface{}, error) {
+	left, err := i.interpret(ctx, expr.Left())
 	if err != nil {
 		return nil, err
 	}
-	right, err := i.interpret(expr.Right())
+	right, err := i.interpret(ctx, expr.Right())
 	if err != nil {
 		return nil, err
 	}
@@ -199,20 +211,20 @@ func (i *Evaluator) isEqual(a, b interface{}) bool {
 	return a == b
 }
 
-func (i *Evaluator) visitParseErrorExpr(expr *ParseError) (interface{}, error) {
+func (i *Evaluator) visitParseErrorExpr(ctx context.Context, expr *ParseError) (interface{}, error) {
 	return nil, fmt.Errorf("parse error: %s", expr.Error())
 }
 
-func (i *Evaluator) visitGroupingExpr(expr *Grouping) (interface{}, error) {
-	return i.interpret(expr.Expression())
+func (i *Evaluator) visitGroupingExpr(ctx context.Context, expr *Grouping) (interface{}, error) {
+	return i.interpret(ctx, expr.Expression())
 }
 
-func (i *Evaluator) visitLiteralExpr(expr *Literal) (interface{}, error) {
+func (i *Evaluator) visitLiteralExpr(ctx context.Context, expr *Literal) (interface{}, error) {
 	return expr.Value(), nil
 }
 
-func (i *Evaluator) visitUnaryExpr(expr *Unary) (interface{}, error) {
-	right, err := i.interpret(expr.Right())
+func (i *Evaluator) visitUnaryExpr(ctx context.Context, expr *Unary) (interface{}, error) {
+	right, err := i.interpret(ctx, expr.Right())
 	if err != nil {
 		return nil, err
 	}
@@ -225,10 +237,10 @@ func (i *Evaluator) visitUnaryExpr(expr *Unary) (interface{}, error) {
 	return nil, nil
 }
 
-func (i *Evaluator) visitTemplateExpr(expr *Template) (interface{}, error) {
+func (i *Evaluator) visitTemplateExpr(ctx context.Context, expr *Template) (interface{}, error) {
 	evaluations := make([]interface{}, 0)
 	for _, e := range expr.Expressions() {
-		ev, err := i.interpret(e)
+		ev, err := i.interpret(ctx, e)
 		if err != nil {
 			return nil, err
 		}
@@ -245,26 +257,26 @@ func (i *Evaluator) visitTemplateExpr(expr *Template) (interface{}, error) {
 	return ret, nil
 }
 
-func (i *Evaluator) visitTernaryExpr(expr *Ternary) (interface{}, error) {
-	condition, err := i.interpret(expr.Condition())
+func (i *Evaluator) visitTernaryExpr(ctx context.Context, expr *Ternary) (interface{}, error) {
+	condition, err := i.interpret(ctx, expr.Condition())
 	if err != nil {
 		return nil, err
 	}
 	if i.isTruthy(condition) {
-		return i.interpret(expr.TrueExpr())
+		return i.interpret(ctx, expr.TrueExpr())
 	}
-	return i.interpret(expr.FalseExpr())
+	return i.interpret(ctx, expr.FalseExpr())
 }
 
-func (i *Evaluator) visitVariableExpr(expr *Variable) (interface{}, error) {
+func (i *Evaluator) visitVariableExpr(ctx context.Context, expr *Variable) (interface{}, error) {
 	if fn, ok := i.funcs[expr.Name().Lexeme()]; ok {
 		return fn, nil
 	}
 	return nil, nil
 }
 
-func (i *Evaluator) visitGetExpr(expr *Get) (interface{}, error) {
-	obj, err := i.interpret(expr.Object())
+func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, error) {
+	obj, err := i.interpret(ctx, expr.Object())
 	if err != nil {
 		return nil, err
 	}
@@ -274,12 +286,12 @@ func (i *Evaluator) visitGetExpr(expr *Get) (interface{}, error) {
 	return obj.(map[string]interface{})[expr.Name().Lexeme()], nil
 }
 
-func (i *Evaluator) visitIndexExpr(expr *Index) (interface{}, error) {
-	obj, err := i.interpret(expr.Object())
+func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) (interface{}, error) {
+	obj, err := i.interpret(ctx, expr.Object())
 	if err != nil {
 		return nil, err
 	}
-	indexValue, err := i.interpret(expr.Index())
+	indexValue, err := i.interpret(ctx, expr.Index())
 	if err != nil {
 		return nil, err
 	}
@@ -303,16 +315,16 @@ func (i *Evaluator) visitIndexExpr(expr *Index) (interface{}, error) {
 	}
 }
 
-func (e *Evaluator) visitCallExpr(expr *Call) (interface{}, error) {
+func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) (interface{}, error) {
 	args := make([]interface{}, 0)
 	for _, a := range expr.Arguments() {
-		arg, err := e.interpret(a)
+		arg, err := e.interpret(ctx, a)
 		if err != nil {
 			return nil, err
 		}
 		args = append(args, arg)
 	}
-	callee, err := e.interpret(expr.Callee())
+	callee, err := e.interpret(ctx, expr.Callee())
 	if err != nil {
 		return nil, err
 	}
@@ -349,22 +361,23 @@ func (e *Evaluator) visitCallExpr(expr *Call) (interface{}, error) {
 		)
 	}
 
-	in := make([]reflect.Value, len(args))
+	in := make([]reflect.Value, 0)
 	variadicIndex := fn.Type().NumIn() - 1
 	for i, arg := range args {
 		if isVariadic && i >= variadicIndex {
 			// Variadic argument
-			paramType := fn.Type().In(variadicIndex).Elem()
+			varsType := fn.Type().In(variadicIndex)
+			paramType := varsType.Elem()
 			for _, a := range args[i:] {
 				if !reflect.TypeOf(a).AssignableTo(paramType) {
 					return nil, NewEvaluationError(
-						"variadic argument '%v' is not assignable to parameter '%s'",
+						"variadic argument '%v' is not assignable to type '%s'",
 						arg,
 						paramType.String(),
 					)
 				}
+				in = append(in, reflect.ValueOf(a))
 			}
-			in[i] = reflect.ValueOf(args[i:])
 			break
 		}
 		argValue := reflect.ValueOf(arg)
@@ -378,7 +391,7 @@ func (e *Evaluator) visitCallExpr(expr *Call) (interface{}, error) {
 			)
 		}
 
-		in[i] = argValue
+		in = append(in, argValue)
 	}
 
 	out := fn.Call(in)
@@ -388,7 +401,6 @@ func (e *Evaluator) visitCallExpr(expr *Call) (interface{}, error) {
 		}
 	}
 	return out[0].Interface(), nil
-
 }
 
 func identifyCallee(expr *Call) string {
@@ -401,10 +413,10 @@ func identifyCallee(expr *Call) string {
 	return "unknown"
 }
 
-func (i *Evaluator) visitArrayExpr(expr *Array) (interface{}, error) {
+func (i *Evaluator) visitArrayExpr(ctx context.Context, expr *Array) (interface{}, error) {
 	values := make([]interface{}, 0)
 	for _, v := range expr.Values() {
-		value, err := i.interpret(v)
+		value, err := i.interpret(ctx, v)
 		if err != nil {
 			return nil, err
 		}
@@ -424,9 +436,38 @@ func (i *Evaluator) isTruthy(object interface{}) bool {
 }
 
 func (i *Evaluator) Evaluate(expr Expr) (interface{}, error) {
-	return i.interpret(expr)
+	ctx, cancel := context.WithTimeout(context.Background(), i.timeout)
+	defer cancel()
+
+	result := make(chan interface{})
+	errChan := make(chan error)
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				errChan <- NewEvaluationError("%v", r)
+			}
+			close(result)
+			close(errChan)
+		}()
+		obj, err := i.interpret(ctx, expr)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		result <- obj
+	}()
+
+	select {
+	case obj := <-result:
+		return obj, nil
+	case err := <-errChan:
+		return nil, err
+	case <-ctx.Done():
+		return nil, NewEvaluationError("evaluation timed out after %s", i.timeout.String())
+	}
 }
 
-func (i *Evaluator) interpret(expr Expr) (interface{}, error) {
-	return expr.Accept(i)
+func (i *Evaluator) interpret(ctx context.Context, expr Expr) (interface{}, error) {
+	return expr.Accept(ctx, i)
 }
