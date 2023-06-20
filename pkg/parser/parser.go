@@ -18,7 +18,19 @@ func NewParser(source string) *Parser {
 	return &Parser{tokens: tokens, current: 0}
 }
 
-func (p *Parser) Parse() Expr {
+func (p *Parser) Parse() (exp Expr) {
+	defer func() {
+		if r := recover(); r != nil {
+			if err, ok := r.(*ParseError); ok {
+				exp = err
+			} else {
+				exp = &ParseError{
+					message: fmt.Sprintf("%v", r),
+					token:   p.peek(),
+				}
+			}
+		}
+	}()
 	return p.template()
 }
 
@@ -40,9 +52,12 @@ func (p *Parser) template() Expr {
 // valueTemplate → TEMPLATE_START expression TEMPLATE_END ;
 func (p *Parser) valueTemplate() Expr {
 	expr := p.expression()
-	_, ok := p.consume(TEMPLATE_RIGHT_BRACE)
-	if !ok {
-		return p.error(fmt.Sprintf("Expect '}}' after expression. got %v", p.peek().lexeme), p.peek())
+
+	if ok := p.consume(TEMPLATE_RIGHT_BRACE); !ok {
+		p.error(
+			fmt.Sprintf("Expect '}}' after expression. got %v", p.peek().lexeme),
+			p.peek(),
+		)
 	}
 	return expr
 }
@@ -66,9 +81,11 @@ func (p *Parser) ternary() Expr {
 	expr := p.logicalOr()
 	if p.match(QMARK) {
 		trueExpr := p.expression()
-		_, ok := p.consume(COLON)
-		if !ok {
-			return p.error(fmt.Sprintf("Expect ':' after true expression. got %v", p.peek().lexeme), p.peek())
+		if ok := p.consume(COLON); !ok {
+			p.error(
+				fmt.Sprintf("Expect ':' after true expression. got %v", p.peek().lexeme),
+				p.peek(),
+			)
 		}
 		falseExpr := p.expression()
 		expr = NewTernary(expr, trueExpr, falseExpr)
@@ -159,11 +176,10 @@ func (p *Parser) call() Expr {
 		if p.match(LEFT_PAREN) {
 			expr = p.finishCall(expr)
 		} else if p.match(DOT) {
-			name, ok := p.consume(IDENTIFIER)
-			if !ok {
-				return p.error(fmt.Sprintf("Expect property name after '.'. got %v", p.peek().lexeme), p.peek())
+			if ok := p.consume(IDENTIFIER); !ok {
+				p.error(fmt.Sprintf("Expect property name after '.'. got %v", p.peek().lexeme), p.peek())
 			}
-			expr = NewGet(expr, name)
+			expr = NewGet(expr, p.previous())
 		} else if p.match(LEFT_BRACKET) {
 			expr = p.finishIndex(expr)
 		} else {
@@ -175,9 +191,11 @@ func (p *Parser) call() Expr {
 
 func (p *Parser) finishIndex(expr Expr) Expr {
 	index := p.expression()
-	_, ok := p.consume(RIGHT_BRACKET)
-	if !ok {
-		return p.error(fmt.Sprintf("Expect ']' after index expression. got %v", p.peek().lexeme), p.peek())
+	if ok := p.consume(RIGHT_BRACKET); !ok {
+		p.error(
+			fmt.Sprintf("Expect ']' after index expression. got %v", p.peek().lexeme),
+			p.peek(),
+		)
 	}
 	return NewIndex(expr, index)
 }
@@ -190,9 +208,8 @@ func (p *Parser) finishCall(expr Expr) Expr {
 			args = append(args, p.expression())
 		}
 	}
-	_, ok := p.consume(RIGHT_PAREN)
-	if !ok {
-		return p.error(fmt.Sprintf("Expect ')' after arguments. got %v", p.peek().lexeme), p.peek())
+	if ok := p.consume(RIGHT_PAREN); !ok {
+		p.error(fmt.Sprintf("Expect ')' after arguments. got %v", p.peek().lexeme), p.peek())
 	}
 	return NewCall(expr, args)
 }
@@ -223,9 +240,11 @@ func (p *Parser) primary() Expr {
 	}
 	if p.match(LEFT_PAREN) {
 		expr := p.expression()
-		_, ok := p.consume(RIGHT_PAREN)
-		if !ok {
-			return p.error(fmt.Sprintf("Expect ')' after expression. got %v", p.peek().lexeme), p.peek())
+		if ok := p.consume(RIGHT_PAREN); !ok {
+			p.error(
+				fmt.Sprintf("Expect ')' after expression. got %v", p.peek().lexeme),
+				p.peek(),
+			)
 		}
 		return NewGrouping(expr)
 	}
@@ -233,7 +252,8 @@ func (p *Parser) primary() Expr {
 		return p.array()
 	}
 
-	return p.error(fmt.Sprintf("Expect expression. got %v", p.peek().lexeme), p.peek())
+	p.error(fmt.Sprintf("Expect expression. got %v", p.peek().lexeme), p.peek())
+	return nil
 }
 
 // Grammar:
@@ -246,23 +266,26 @@ func (p *Parser) array() Expr {
 			values = append(values, p.expression())
 		}
 	}
-	_, ok := p.consume(RIGHT_BRACKET)
-	if !ok {
-		return p.error(fmt.Sprintf("Expect ']' after array expression. got %v", p.peek().lexeme), p.peek())
+	if ok := p.consume(RIGHT_BRACKET); !ok {
+		p.error(
+			fmt.Sprintf("Expect ']' after array expression. got %v", p.peek().lexeme),
+			p.peek(),
+		)
 	}
 
 	return NewArray(values)
 }
 
-func (p *Parser) consume(tokenType TokenType) (Token, bool) {
+func (p *Parser) consume(tokenType TokenType) bool {
 	if p.check(tokenType) {
-		return p.advance(), true
+		p.advance()
+		return true
 	}
-	return Token{}, false
+	return false
 }
 
-func (p *Parser) error(errorMessage string, token Token) *ParseError {
-	return &ParseError{message: errorMessage, token: token}
+func (p *Parser) error(errorMessage string, token Token) {
+	panic(&ParseError{message: errorMessage, token: token})
 }
 
 func (p *Parser) match(types ...TokenType) bool {

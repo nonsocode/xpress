@@ -13,6 +13,7 @@ import (
 type SuccessCases struct {
 	template string
 	expect   interface{}
+	only     bool
 }
 
 type ErrorCases struct {
@@ -21,69 +22,72 @@ type ErrorCases struct {
 }
 
 var cases = []SuccessCases{
-	{"Just raw text", "Just raw text"},
-	{"{{ 123 * (45.67) }}", float64(123 * 45.67)},
-	{"{{-123 * (45.67) }} juxtaposed", "-5617.41 juxtaposed"},
+	{template: "Just raw text", expect: "Just raw text"},
+	{template: "{{ 123 * (45.67) }}", expect: float64(123 * 45.67)},
+	{template: "{{-123 * (45.67) }} juxtaposed", expect: "-5617.41 juxtaposed"},
 	{
-		"{{-123 * (45.67) }} ",
-		"-5617.41 ",
-	}, // converts to string if the template braces don't begin and end the string
-	{
-		`{{ 3 * 3 }} with text in-between {{ true ? "changed" : "not changed" }}`,
-		"9 with text in-between changed",
+		template: "{{-123 * (45.67) }} ", // converts to string if the template braces don't begin and end the string
+		expect:   "-5617.41 ",
 	},
 	{
-		`{{'{{'}} 3 * 3 }} escaped template with template after {{ true ? "yes" : "no" }}`,
-		"{{ 3 * 3 }} escaped template with template after yes",
-	},
-	{"{{ 4 * 4 }}", float64(16)},
-	{"{{ 8 / 4 }}", float64(2)},
-	{"{{ 5 > 4 }}", true},
-	{"{{ 5 < 4 }}", false},
-	{"{{ 5 == 5 }}", true},
-	{"{{ 5 != 5 }}", false},
-	{"{{ 5 >= 5 }}", true},
-	{"{{ 5 <= 5 }}", true},
-	{"{{ 5 >= 4 }}", true},
-	{"{{ 5 <= 4 }}", false},
-	{"{{ true && true}}", true},
-	{"{{ true && false}}", false},
-	{"{{ false && false}}", false},
-	{"{{ true || true}}", true},
-	{"{{ true || false}}", true},
-	{"{{ false || false}}", false},
-	{"{{ 4 > 5 && 5 == 5 }}", false},
-	{"{{ 4 > 5 || 5 == 5 }}", true},
-	{"{{ (4 > 5 || 5) }}", true},
-	{"{{ (4 > 5 && 5) }}", false},
-	{"{{ (4 > 5 || 5) == true}}", true},
-	{"{{ (4 > 5 && 5) == true}}", false},
-	{"{{ true && true && true}}", true},
-	{"{{ true && false && true}}", false},
-	{"{{ true && false && true}}", false},
-	{`{{ "a string" == "a string"}}`, true},
-	{`{{ "a string" != "a different string"}}`, true},
-	{`{{ "a string" == "a different string"}}`, false},
-	{`{{ "a string" != "a string"}}`, false},
-	{`{{ "a string" != "a string"}}`, false},
-	{`{{[1, 2, true, "a"]}}`, []interface{}{float64(1), float64(2), true, "a"}},
-	{`{{[1, 2, true, "a"]}} `, "[1 2 true a] "},
-	{`{{ "a string" + " " + "Joined" }}`, "a string Joined"},
-	{`{{ concat("string", "joined by", "another") }}`, "stringjoined byanother"},
-	{
-		`{{ concat("string", " ", concat("with another", concat(" ", "recursive"))) }}`,
-		"string with another recursive",
+		template: `{{ 3 * 3 }} with text in-between {{ true ? "changed" : "not changed" }}`,
+		expect:   "9 with text in-between changed",
 	},
 	{
-		"{{ getDeepObject().deep.object.with.values }}",
-		[]interface{}{3, 2, 1},
+		template: `{{'{{'}} 3 * 3 }} escaped template with template after {{ true ? "yes" : "no" }}`,
+		expect:   "{{ 3 * 3 }} escaped template with template after yes",
 	},
-	{"{{ funcable()('host') }}", "a function with host"},
+	{template: "{{ 4 * 4 }}", expect: float64(16)},
+	{template: "{{ 8 / 4 }}", expect: float64(2)},
+	{template: "{{ 5 > 4 }}", expect: true},
+	{template: "{{ 5 < 4 }}", expect: false},
+	{template: "{{ 5 == 5 }}", expect: true},
+	{template: "{{ 5 != 5 }}", expect: false},
+	{template: "{{ 5 >= 5 }}", expect: true},
+	{template: "{{ 5 <= 5 }}", expect: true},
+	{template: "{{ 5 >= 4 }}", expect: true},
+	{template: "{{ 5 <= 4 }}", expect: false},
+	{template: "{{ true && true}}", expect: true},
+	{template: "{{ true && false}}", expect: false},
+	{template: "{{ false && false}}", expect: false},
+	{template: "{{ true || true}}", expect: true},
+	{template: "{{ true || false}}", expect: true},
+	{template: "{{ false || false}}", expect: false},
+	{template: "{{ 4 > 5 && 5 == 5 }}", expect: false},
+	{template: "{{ 4 > 5 || 5 == 5 }}", expect: true},
+	{template: "{{ (4 > 5 || 5) }}", expect: true},
+	{template: "{{ (4 > 5 && 5) }}", expect: false},
+	{template: "{{ (4 > 5 || 5) == true}}", expect: true},
+	{template: "{{ (4 > 5 && 5) == true}}", expect: false},
+	{template: "{{ true && true && true}}", expect: true},
+	{template: "{{ true && false && true}}", expect: false},
+	{template: "{{ true && false && true}}", expect: false},
+	{template: `{{ "a string" == "a string"}}`, expect: true},
+	{template: `{{ "a string" != "a different string"}}`, expect: true},
+	{template: `{{ "a string" == "a different string"}}`, expect: false},
+	{template: `{{ "a string" != "a string"}}`, expect: false},
+	{template: `{{ "a string" != "a string"}}`, expect: false},
+	{template: `{{[1, 2, true, "a"]}}`, expect: []interface{}{float64(1), float64(2), true, "a"}},
+	{template: `{{[1, 2, true, "a"]}} `, expect: "[1 2 true a] "},
+	{template: `{{ "a string" + " " + "Joined" }}`, expect: "a string Joined"},
+	{template: `{{ concat("string", "joined by", "another") }}`, expect: "stringjoined byanother"},
+	{template: `{{ concat("string", " ", concat("with another", concat(" ", "recursive"))) }}`, expect: "string with another recursive"},
+	{template: "{{ getDeepObject().deep.object.with.values }}", expect: []interface{}{3, 2, 1}},
+	{template: "{{ funcable()('host') }}", expect: "a function with host"},
+	{template: "{{ someObject.key }}", expect: "value"},
+	{template: "{{ someObject['key'] }}", expect: "value"},
+	{template: "{{ someObject.nested.key1 }}", expect: "value2"},
+	{template: "{{ someObject['nested'].key1 }}", expect: "value2"},
+	{template: "{{ someObject.nested['key1'] }}", expect: "value2"},
+	{template: "{{ someObject['nested']['key1'] }}", expect: "value2"},
 }
 
 var errorCases = []ErrorCases{
 	{"{{ 5 > }}", "parse error: Error at position 7. Expect expression. got }}"},
-	{"{{ 5 ", "parse error: Error at position 5. Expect '}}' after expression. got unclosed action"},
+	{
+		"{{ 5 ",
+		"parse error: Error at position 5. Expect '}}' after expression. got unclosed action",
+	},
 	{"{{ 5 6 }}", "parse error: Error at position 5. Expect '}}' after expression. got 6"},
 	{
 		"{{ nonexistentFunction() }}",
@@ -101,13 +105,23 @@ var errorCases = []ErrorCases{
 
 func TestExampleParser(t *testing.T) {
 	evaluator := NewInterpreter()
-	evaluator.SetFunctions(createTestTemplateFunctions())
+	evaluator.AddMembers(createTestTemplateFunctions())
 	evaluator.SetTimeout(5 * time.Millisecond)
-	for _, c := range cases {
-		ast := NewParser(c.template).Parse()
+	test := func(cas *SuccessCases) {
+		ast := NewParser(cas.template).Parse()
 		res, err := evaluator.Evaluate(ast)
 		assert.Nil(t, err)
-		assert.Equal(t, c.expect, res)
+		assert.Equal(t, cas.expect, res)
+	}
+	for _, c := range cases {
+		if c.only {
+			test(&c)
+			return
+		}
+	}
+
+	for _, c := range cases {
+		test(&c)
 	}
 
 }
@@ -115,7 +129,7 @@ func TestExampleParser(t *testing.T) {
 func TestExampleParserErrors(t *testing.T) {
 	evaluator := NewInterpreter()
 	evaluator.SetTimeout(5 * time.Millisecond)
-	evaluator.SetFunctions(createTestTemplateFunctions())
+	evaluator.AddMembers(createTestTemplateFunctions())
 	for _, c := range errorCases {
 		ast := NewParser(c.template).Parse()
 		_, err := evaluator.Evaluate(ast)
@@ -183,6 +197,12 @@ func createTestTemplateFunctions() map[string]interface{} {
 			return func(ctx context.Context, stuff string) string {
 				return "a function with " + stuff
 			}
+		},
+		"someObject": map[string]interface{}{
+			"key": "value",
+			"nested": map[string]interface{}{
+				"key1": "value2",
+			},
 		},
 	}
 }

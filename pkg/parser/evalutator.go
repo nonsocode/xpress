@@ -9,7 +9,7 @@ import (
 
 type (
 	Evaluator struct {
-		funcs   map[string]interface{}
+		members map[string]interface{}
 		timeout time.Duration
 	}
 
@@ -29,7 +29,7 @@ var (
 
 func NewInterpreter() *Evaluator {
 	return &Evaluator{
-		funcs:   make(map[string]interface{}),
+		members: make(map[string]interface{}),
 		timeout: DefaultTimeout,
 	}
 }
@@ -46,14 +46,14 @@ func (e *EvaluationError) Error() string {
 	return e.message
 }
 
-func (i *Evaluator) AddFunc(name string, fn interface{}) error {
-	i.funcs[name] = fn
+func (i *Evaluator) AddMember(name string, member interface{}) error {
+	i.members[name] = member
 	return nil
 }
 
-func (i *Evaluator) SetFunctions(funcs map[string]interface{}) error {
-	for name, fn := range funcs {
-		i.AddFunc(name, fn)
+func (i *Evaluator) AddMembers(members map[string]interface{}) error {
+	for name, member := range members {
+		i.AddMember(name, member)
 	}
 	return nil
 }
@@ -222,7 +222,10 @@ func (i *Evaluator) isEqual(a, b interface{}) bool {
 	return a == b
 }
 
-func (i *Evaluator) visitParseErrorExpr(ctx context.Context, expr *ParseError) (interface{}, error) {
+func (i *Evaluator) visitParseErrorExpr(
+	ctx context.Context,
+	expr *ParseError,
+) (interface{}, error) {
 	if i.isContextCancelled(ctx) {
 		return nil, EvaluationCancelledErrror
 	}
@@ -301,8 +304,8 @@ func (i *Evaluator) visitVariableExpr(ctx context.Context, expr *Variable) (inte
 	if i.isContextCancelled(ctx) {
 		return nil, EvaluationCancelledErrror
 	}
-	if fn, ok := i.funcs[expr.Name().Lexeme()]; ok {
-		return fn, nil
+	if member, ok := i.members[expr.Name().Lexeme()]; ok {
+		return member, nil
 	}
 	return nil, nil
 }
@@ -310,6 +313,9 @@ func (i *Evaluator) visitVariableExpr(ctx context.Context, expr *Variable) (inte
 func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, error) {
 	if i.isContextCancelled(ctx) {
 		return nil, EvaluationCancelledErrror
+	}
+	if expr.Object() == nil {
+		return nil, fmt.Errorf("object is nil")
 	}
 	obj, err := i.interpret(ctx, expr.Object())
 	if err != nil {

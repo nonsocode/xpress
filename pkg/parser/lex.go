@@ -371,10 +371,12 @@ func lexIdent(l *Lexer) stateFn {
 		return l.errorf("bad character %#U", r)
 	}
 	word := l.source[l.start:l.current]
-	if keywords[word] > _keywordStart {
-		l.addToken(keywords[word])
-	} else {
-		l.addToken(IDENTIFIER)
+	if len(word) > 0 {
+		if keywords[word] > _keywordStart {
+			l.addToken(keywords[word])
+		} else {
+			l.addToken(IDENTIFIER)
+		}
 	}
 	return lexInsideAction
 }

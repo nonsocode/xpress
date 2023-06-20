@@ -66,12 +66,12 @@ type (
 	}
 
 	JVariable struct {
-		JNode `json:",inline"`
+		JNode `       json:",inline"`
 		Name  string `json:"name"`
 	}
 
 	JParseError struct {
-		JNode   `json:",inline"`
+		JNode   `       json:",inline"`
 		Message string `json:"message"`
 	}
 
@@ -196,7 +196,10 @@ func (jp *JSONPrinter) visitArrayExpr(ctx context.Context, expr *Array) (interfa
 	}, nil
 }
 
-func (jp *JSONPrinter) visitParseErrorExpr(ctx context.Context, err *ParseError) (interface{}, error) {
+func (jp *JSONPrinter) visitParseErrorExpr(
+	ctx context.Context,
+	err *ParseError,
+) (interface{}, error) {
 	return &JParseError{
 		JNode:   JNode{Type: "ParseError"},
 		Message: err.Error(),

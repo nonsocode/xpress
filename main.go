@@ -9,13 +9,13 @@ import (
 func main() {
 
 	evaluator := *parser.NewInterpreter()
-	// jsonPrinter := parser.NewJSONPrinter()
-	template1 := parser.NewParser("hehe{{-123 * (45.67) }}").Parse()
+	jsonPrinter := parser.NewJSONPrinter()
+	template1 := parser.NewParser("{{ 3 * 6 + (5 + 6) / 5 }}").Parse()
 	template2 := parser.NewParser(`{{ 3 * 3 }} withot spaces is {{ true ? "changed" : "not changed" }}`).
 		Parse()
 	template3 := parser.NewParser(`This year's woman of the year is {{ hello("df").woman.funcs().justice }}`).
 		Parse()
-	evaluator.AddFunc("hello", func(someting string) (interface{}, error) {
+	evaluator.AddMember("hello", func(someting string) (interface{}, error) {
 		// panic("not implemented")
 		return map[string]interface{}{
 			"woman": map[string]interface{}{
@@ -33,7 +33,7 @@ func main() {
 	fmt.Println(evaluator.Evaluate(template1))
 	fmt.Println(evaluator.Evaluate(template2))
 	fmt.Println(evaluator.Evaluate(template3))
-	// fmt.Println(jsonPrinter.Print(template1))
+	fmt.Println(jsonPrinter.Print(template1))
 	// fmt.Println(jsonPrinter.Print(template2))
 	// fmt.Println(jsonPrinter.Print(template3))
 }
