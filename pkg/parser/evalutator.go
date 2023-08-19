@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -20,7 +22,7 @@ type (
 
 const (
 	// DefaultTimeout is the default timeout for evaluating expressions.
-	DefaultTimeout = 5 * time.Hour
+	DefaultTimeout = 5 * time.Second
 )
 
 var (
@@ -104,17 +106,17 @@ func (e *Evaluator) add(left, right interface{}) (interface{}, error) {
 		return nil, fmt.Errorf("cannot add nil values: adding %v and %v", left, right)
 	}
 
-	_, oks1 := left.(string)
-	_, oks2 := right.(string)
-	if oks1 || oks2 {
-		return fmt.Sprintf("%v%v", left, right), nil
+	switch l := left.(type) {
+	case string:
+		if r, ok := right.(string); ok {
+			return l + r, nil
+		}
+	case float64:
+		if r, ok := right.(float64); ok {
+			return l + r, nil
+		}
 	}
 
-	l, okf1 := left.(float64)
-	r, okf2 := right.(float64)
-	if okf1 || okf2 {
-		return l + r, nil
-	}
 	return nil, fmt.Errorf("cannot add non-numbers or strings: %v + %v", left, right)
 }
 
@@ -278,12 +280,12 @@ func (i *Evaluator) visitTemplateExpr(ctx context.Context, expr *Template) (inte
 	if len(evaluations) == 1 {
 		return evaluations[0], nil
 	}
-	// conert to string and concat
-	ret := ""
+
+	str := strings.Builder{}
 	for _, e := range evaluations {
-		ret += fmt.Sprintf("%v", e)
+		str.WriteString(fmt.Sprintf("%v", e))
 	}
-	return ret, nil
+	return str.String(), nil
 }
 
 func (i *Evaluator) visitTernaryExpr(ctx context.Context, expr *Ternary) (interface{}, error) {
@@ -474,53 +476,57 @@ func (i *Evaluator) visitArrayExpr(ctx context.Context, expr *Array) (interface{
 	if i.isContextCancelled(ctx) {
 		return nil, EvaluationCancelledErrror
 	}
-	values := make([]interface{}, 0)
-	for _, v := range expr.Values() {
+	values := make([]interface{}, len(expr.Values()))
+	for index, v := range expr.Values() {
 		value, err := i.interpret(ctx, v)
 		if err != nil {
 			return nil, err
 		}
-		values = append(values, value)
+		values[index] = value
 	}
 	return values, nil
 }
 
 func (i *Evaluator) isTruthy(object interface{}) bool {
-	if object == nil {
+	switch value := object.(type) {
+	case nil:
 		return false
+	case bool:
+		return value
+	default:
+		return true
 	}
-	if b, ok := object.(bool); ok {
-		return b
-	}
-	return true
 }
 
 func (i *Evaluator) Evaluate(expr Expr) (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), i.timeout)
 	defer cancel()
 
-	result := make(chan interface{}, 1)
-	errChan := make(chan error, 1)
+	var result interface{}
+	var err error
+	var once sync.Once
+
+	done := make(chan bool)
 
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				errChan <- NewEvaluationError("%v", r)
+				once.Do(func() {
+					err = NewEvaluationError("%v", r)
+				})
 			}
+			close(done)
 		}()
-		obj, err := i.interpret(ctx, expr)
-		if err != nil {
-			errChan <- err
-			return
-		}
-		result <- obj
+		obj, e := i.interpret(ctx, expr)
+		once.Do(func() {
+			result = obj
+			err = e
+		})
 	}()
 
 	select {
-	case obj := <-result:
-		return obj, nil
-	case err := <-errChan:
-		return nil, err
+	case <-done:
+		return result, err
 	case <-ctx.Done():
 		return nil, NewEvaluationError("evaluation timed out after %s", i.timeout.String())
 	}

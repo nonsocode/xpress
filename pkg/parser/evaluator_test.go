@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PaesslerAG/gval"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -162,7 +163,7 @@ func BenchmarkComplexEvaluator(b *testing.B) {
 	evaluator.AddMembers(createTestTemplateFunctions())
 	evaluator.SetTimeout(5 * time.Millisecond)
 	// create a parser with complex expression
-	ast := NewParser("{{ concat('string', ' ', concat('with another', concat(' ', 'recursive'))) }} and some advanced math {{ math.pow(2, 3) + 56 / 4 * 6 }} and some object access {{ someObject.nested.key1 }} with other function calls {{ getDeepObject().deep.object.with.values }}").Parse()
+	ast := NewParser("{{ concat('string', ' ', concat('with another', concat(' ', 'recursive'))) }} and some advanced math {{ math.pow(2, 3) + 56 / 4 * 6 }} and some object access {{ someObject.nested.key1 }} with other function calls {{ deepObject.deep.object.with.values }}").Parse()
 	for n := 0; n < b.N; n++ {
 		evaluator.Evaluate(ast)
 	}
@@ -177,6 +178,63 @@ func BenchmarkSimpleEvaluator(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		evaluator.Evaluate(ast)
 	}
+}
+
+func BenchmarkGvalComplex(b *testing.B) {
+	ogFunctions := createTestTemplateFunctions()
+	vars := map[string]interface{}{
+		"concat": func(args ...string) string {
+			builder := strings.Builder{}
+			for _, arg := range args {
+				builder.WriteString(arg)
+			}
+			return builder.String()
+		},
+		"math": ogFunctions["math"],
+		"deepObject": func() map[string]interface{} {
+			return map[string]interface{}{
+				"deep": map[string]interface{}{
+					"object": map[string]interface{}{
+						"with": map[string]interface{}{
+							"values": []interface{}{3, 2, 1},
+						},
+					},
+				},
+			}
+		},
+		"someObject": ogFunctions["someObject"],
+	}
+
+	for n := 0; n < b.N; n++ {
+		gval.Evaluate(`concat("string", " ", concat("with another", concat(" ", "recursive"))) + " and some advanced math " + math.pow(2, 3) + 56 / 4 * 6 + " and some object access " + someObject.nested.key1 + " with other function calls " + deepObject.deep.object.with.values`, vars)
+	}
+
+}
+func TestGvalComplex(t *testing.T) {
+	ogFunctions := createTestTemplateFunctions()
+	vars := map[string]interface{}{
+		"concat": func(args ...string) string {
+			builder := strings.Builder{}
+			for _, arg := range args {
+				builder.WriteString(arg)
+			}
+			return builder.String()
+		},
+		"math": ogFunctions["math"],
+		"getDeepObject": map[string]interface{}{
+			"deep": map[string]interface{}{
+				"object": map[string]interface{}{
+					"with": map[string]interface{}{
+						"values": []interface{}{3, 2, 1},
+					},
+				},
+			},
+		},
+		"someObject": ogFunctions["someObject"],
+	}
+
+	_, err := gval.Evaluate(`concat("string", " ", concat("with another", concat(" ", "recursive"))) + " and some advanced math " + math.pow(2, 3) + 56 / 4 * 6 + " and some object access " + someObject.nested.key1 + " with other function calls " + getDeepObject.deep.object.with.values`, vars)
+	assert.Nil(t, err)
 }
 
 func createTestTemplateFunctions() map[string]interface{} {
@@ -218,6 +276,15 @@ func createTestTemplateFunctions() map[string]interface{} {
 					},
 				},
 			}, nil
+		},
+		"deepObject": map[string]interface{}{
+			"deep": map[string]interface{}{
+				"object": map[string]interface{}{
+					"with": map[string]interface{}{
+						"values": []interface{}{3, 2, 1},
+					},
+				},
+			},
 		},
 		"waitMs": func(msec int) bool {
 			time.Sleep(time.Duration(msec) * time.Millisecond)
