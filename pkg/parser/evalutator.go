@@ -499,8 +499,8 @@ func (i *Evaluator) Evaluate(expr Expr) (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), i.timeout)
 	defer cancel()
 
-	result := make(chan interface{})
-	errChan := make(chan error)
+	result := make(chan interface{}, 1)
+	errChan := make(chan error, 1)
 
 	go func() {
 		defer func() {

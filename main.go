@@ -7,9 +7,8 @@ import (
 )
 
 func main() {
-
 	evaluator := *parser.NewInterpreter()
-	jsonPrinter := parser.NewJSONPrinter()
+	// jsonPrinter := parser.NewJSONPrinter()
 	template1 := parser.NewParser("{{ 3 * 6 + (5 + 6) / 5 }}").Parse()
 	template2 := parser.NewParser(`{{ 3 * 3 }} withot spaces is {{ true ? "changed" : "not changed" }}`).
 		Parse()
@@ -33,7 +32,7 @@ func main() {
 	fmt.Println(evaluator.Evaluate(template1))
 	fmt.Println(evaluator.Evaluate(template2))
 	fmt.Println(evaluator.Evaluate(template3))
-	fmt.Println(jsonPrinter.Print(template1))
+	// fmt.Println(jsonPrinter.Print(template1))
 	// fmt.Println(jsonPrinter.Print(template2))
 	// fmt.Println(jsonPrinter.Print(template3))
 }

@@ -3,6 +3,7 @@ package parser
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -47,6 +48,11 @@ var cases = []SuccessCases{
 	{template: "{{ 5 <= 5 }}", expect: true},
 	{template: "{{ 5 >= 4 }}", expect: true},
 	{template: "{{ 5 <= 4 }}", expect: false},
+	{template: "{{ math.abs(-5) }}", expect: float64(5)},
+	{template: "{{ true }}", expect: true},
+	{template: "{{ false }}", expect: false},
+	{template: "{{ !true }}", expect: false},
+	{template: "{{ !false }}", expect: true},
 	{template: "{{ true && true}}", expect: true},
 	{template: "{{ true && false}}", expect: false},
 	{template: "{{ false && false}}", expect: false},
@@ -138,9 +144,63 @@ func TestExampleParserErrors(t *testing.T) {
 	}
 }
 
+func BenchmarkComplexParser(b *testing.B) {
+	// create a parser with complex expression
+	for n := 0; n < b.N; n++ {
+		NewParser("{{ concat('string', ' ', concat('with another', concat(' ', 'recursive'))) }} and some advanced math {{ math.pow(2, 3) + 56 / 4 * 6 }} and some object access {{ someObject.nested.key1 }} with other function calls {{ getDeepObject().deep.object.with.values }}").Parse()
+	}
+}
+
+func BenchmarkSimpleParser(b *testing.B) {
+	// create a parser with simple expression
+	for n := 0; n < b.N; n++ {
+		NewParser("{{ 54 * (6 / 2) }}").Parse()
+	}
+}
+func BenchmarkComplexEvaluator(b *testing.B) {
+	evaluator := NewInterpreter()
+	evaluator.AddMembers(createTestTemplateFunctions())
+	evaluator.SetTimeout(5 * time.Millisecond)
+	// create a parser with complex expression
+	ast := NewParser("{{ concat('string', ' ', concat('with another', concat(' ', 'recursive'))) }} and some advanced math {{ math.pow(2, 3) + 56 / 4 * 6 }} and some object access {{ someObject.nested.key1 }} with other function calls {{ getDeepObject().deep.object.with.values }}").Parse()
+	for n := 0; n < b.N; n++ {
+		evaluator.Evaluate(ast)
+	}
+}
+
+func BenchmarkSimpleEvaluator(b *testing.B) {
+	evaluator := NewInterpreter()
+	evaluator.AddMembers(createTestTemplateFunctions())
+	evaluator.SetTimeout(5 * time.Millisecond)
+	// create a parser with complex expression
+	ast := NewParser("{{ 54 * (6 / 2) }}").Parse()
+	for n := 0; n < b.N; n++ {
+		evaluator.Evaluate(ast)
+	}
+}
+
 func createTestTemplateFunctions() map[string]interface{} {
 
 	return map[string]interface{}{
+		"math": map[string]interface{}{
+			"abs":   math.Abs,
+			"acos":  math.Acos,
+			"asin":  math.Asin,
+			"atan":  math.Atan,
+			"atan2": math.Atan2,
+			"ceil":  math.Ceil,
+			"cos":   math.Cos,
+			"exp":   math.Exp,
+			"floor": math.Floor,
+			"log":   math.Log,
+			"log10": math.Log10,
+			"max":   math.Max,
+			"min":   math.Min,
+			"pow":   math.Pow,
+			"sin":   math.Sin,
+			"sqrt":  math.Sqrt,
+			"tan":   math.Tan,
+		},
 		"concat": func(ctx context.Context, args ...string) (interface{}, error) {
 			builder := strings.Builder{}
 			for _, arg := range args {
