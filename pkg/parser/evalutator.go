@@ -13,6 +13,7 @@ type (
 	Evaluator struct {
 		members map[string]interface{}
 		timeout time.Duration
+		lock    sync.RWMutex
 	}
 
 	EvaluationError struct {
@@ -22,7 +23,7 @@ type (
 
 const (
 	// DefaultTimeout is the default timeout for evaluating expressions.
-	DefaultTimeout = 5 * time.Second
+	DefaultTimeout = 10 * time.Millisecond
 )
 
 var (
@@ -49,14 +50,16 @@ func (e *EvaluationError) Error() string {
 }
 
 func (i *Evaluator) AddMember(name string, member interface{}) error {
+	i.lock.Lock()
+	defer i.lock.Unlock()
 	i.members[name] = member
 	return nil
 }
 
-func (i *Evaluator) AddMembers(members map[string]interface{}) error {
-	for name, member := range members {
-		i.AddMember(name, member)
-	}
+func (i *Evaluator) SetMembers(members map[string]interface{}) error {
+	i.lock.Lock()
+	defer i.lock.Unlock()
+	i.members = members
 	return nil
 }
 
@@ -498,8 +501,10 @@ func (i *Evaluator) isTruthy(object interface{}) bool {
 	}
 }
 
-func (i *Evaluator) Evaluate(expr Expr) (interface{}, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), i.timeout)
+func (i *Evaluator) Evaluate(ctx context.Context, expr Expr) (interface{}, error) {
+	i.lock.RLock()
+	defer i.lock.RUnlock()
+	ctx, cancel := context.WithTimeout(ctx, i.timeout)
 	defer cancel()
 
 	var result interface{}

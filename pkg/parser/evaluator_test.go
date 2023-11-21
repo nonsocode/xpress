@@ -26,18 +26,9 @@ var cases = []SuccessCases{
 	{template: "Just raw text", expect: "Just raw text"},
 	{template: "${{ 123 * (45.67) }}", expect: float64(123 * 45.67)},
 	{template: "${{-123 * (45.67) }} juxtaposed", expect: "-5617.41 juxtaposed"},
-	{
-		template: "${{-123 * (45.67) }} ", // converts to string if the template braces don't begin and end the string
-		expect:   "-5617.41 ",
-	},
-	{
-		template: `${{ 3 * 3 }} with text in-between ${{ true ? "changed" : "not changed" }}`,
-		expect:   "9 with text in-between changed",
-	},
-	{
-		template: `${{ '${{' }} 3 * 3 }} escaped template with template after ${{ true ? "yes" : "no" }}`,
-		expect:   "${{ 3 * 3 }} escaped template with template after yes",
-	},
+	{template: "${{-123 * (45.67) }} ", expect: "-5617.41 "}, // converts to string if the template braces don't begin and end the string
+	{template: `${{ 3 * 3 }} with text in-between ${{ true ? "changed" : "not changed" }}`, expect: "9 with text in-between changed"},
+	{template: `${{ '${{' }} 3 * 3 }} escaped template with template after ${{ true ? "yes" : "no" }}`, expect: "${{ 3 * 3 }} escaped template with template after yes"},
 	{template: "${{ true ? 1 : 2 }}", expect: float64(1)},
 	{template: "${{ false ? 1 : 2 }}", expect: float64(2)},
 	{template: "${{ 4 * 4 }}", expect: float64(16)},
@@ -113,32 +104,20 @@ var cases = []SuccessCases{
 
 var errorCases = []ErrorCases{
 	{"${{ 5 > }}", "parse error: Error at position 8. Expect expression. got }}"},
-	{
-		"${{ 5 ",
-		"parse error: Error at position 6. Expect '}}' after expression. got unclosed action",
-	},
+	{"${{ 5 ", "parse error: Error at position 6. Expect '}}' after expression. got unclosed action"},
 	{"${{ 5 6 }}", "parse error: Error at position 6. Expect '}}' after expression. got 6"},
-	{
-		"${{ nonexistentFunction() }}",
-		"cannot call non-function 'nonexistentFunction' of type <nil>",
-	},
-	{
-		"${{ waitMs(10) }}",
-		"evaluation timed out after 5ms",
-	},
-	{
-		"${{ longLoopWithContext() }}",
-		"evaluation timed out after 5ms",
-	},
+	{"${{ nonexistentFunction() }}", "cannot call non-function 'nonexistentFunction' of type <nil>"},
+	{"${{ waitMs(10) }}", "evaluation timed out after 5ms"},
+	{"${{ longLoopWithContext() }}", "evaluation timed out after 5ms"},
 }
 
 func TestExampleParser(t *testing.T) {
 	evaluator := NewInterpreter()
-	evaluator.AddMembers(createTestTemplateFunctions())
+	evaluator.SetMembers(createTestTemplateFunctions())
 	evaluator.SetTimeout(5 * time.Millisecond)
 	test := func(t *testing.T, cas *SuccessCases) {
 		ast := NewParser(cas.template).Parse()
-		res, err := evaluator.Evaluate(ast)
+		res, err := evaluator.Evaluate(context.TODO(), ast)
 		assert.Nil(t, err)
 		assert.Equal(t, cas.expect, res)
 	}
@@ -162,10 +141,10 @@ func TestExampleParser(t *testing.T) {
 func TestExampleParserErrors(t *testing.T) {
 	evaluator := NewInterpreter()
 	evaluator.SetTimeout(5 * time.Millisecond)
-	evaluator.AddMembers(createTestTemplateFunctions())
+	evaluator.SetMembers(createTestTemplateFunctions())
 	for _, c := range errorCases {
 		ast := NewParser(c.template).Parse()
-		_, err := evaluator.Evaluate(ast)
+		_, err := evaluator.Evaluate(context.TODO(), ast)
 		assert.NotNil(t, err)
 		assert.Equal(t, c.msg, err.Error())
 	}
@@ -186,17 +165,16 @@ func BenchmarkSimpleParser(b *testing.B) {
 }
 func BenchmarkEvaluator(b *testing.B) {
 	evaluator := NewInterpreter()
-	evaluator.AddMembers(createTestTemplateFunctions())
+	evaluator.SetMembers(createTestTemplateFunctions())
 	evaluator.SetTimeout(5 * time.Millisecond)
 	// create a parser with complex expression
 	ast := NewParser("${{ concat('string', ' ', concat('with another', concat(' ', 'recursive'))) }} and some advanced math ${{ math.pow(2, 3) + 56 / 4 * 6 }} and some object access ${{ someObject.nested.key1 }} with other function calls ${{getDeepObject().deep.object.with.values}}").Parse()
 	for n := 0; n < b.N; n++ {
-		evaluator.Evaluate(ast)
+		evaluator.Evaluate(context.TODO(), ast)
 	}
 }
 
 func createTestTemplateFunctions() map[string]interface{} {
-
 	return map[string]interface{}{
 		"math": map[string]interface{}{
 			"abs":   math.Abs,
@@ -265,7 +243,6 @@ func createTestTemplateFunctions() map[string]interface{} {
 			var count int
 			for {
 				count++
-				fmt.Println(count, "longLoopWithContext")
 				time.Sleep(1 * time.Second)
 				if count > 2 {
 					break
