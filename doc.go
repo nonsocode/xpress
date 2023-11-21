@@ -73,7 +73,7 @@
 // the result will be converted to a string.
 //
 //	// "${{ 1 + 2 }}" will return number `3`
-//	// "${{ 1 + 2 }}"  will return string `3 `.
+//	// "${{ 1 + 2 }} "  will return string `3 `.
 //
 // # Members
 //
