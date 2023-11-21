@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PaesslerAG/gval"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +35,7 @@ var cases = []SuccessCases{
 		expect:   "9 with text in-between changed",
 	},
 	{
-		template: `${{'${{'}} 3 * 3 }} escaped template with template after ${{ true ? "yes" : "no" }}`,
+		template: `${{ '${{' }} 3 * 3 }} escaped template with template after ${{ true ? "yes" : "no" }}`,
 		expect:   "${{ 3 * 3 }} escaped template with template after yes",
 	},
 	{template: "${{ true ? 1 : 2 }}", expect: float64(1)},
@@ -100,9 +99,9 @@ var cases = []SuccessCases{
 	{template: `${{[1, 2, true, "a"]}} `, expect: "[1 2 true a] "},
 	{template: `${{ "a string" + " " + "Joined" }}`, expect: "a string Joined"},
 	{template: `${{ concat("string", "joined by", "another") }}`, expect: "stringjoined byanother"},
-	{template: `${{ concat("string", " ", concat("with another", concat(" ", "recursive"))) }}`, expect: "string with another recursive"},
+	{template: `${{ concat("string", " ", concat("with another", concat(" ", "nested"))) }}`, expect: "string with another nested"},
 	{template: "${{ getDeepObject().deep.object.with.values }}", expect: []interface{}{3, 2, 1}},
-	{template: "${{ funcable()('host') }}", expect: "a function with host"},
+	{template: "${{ someFunc()('host') }}", expect: "a function with host"},
 	{template: "${{ someObject.key }}", expect: "value"},
 	{template: "${{ someObject['key'] }}", expect: "value"},
 	{template: "${{ someObject.nested.key1 }}", expect: "value2"},
@@ -137,7 +136,7 @@ func TestExampleParser(t *testing.T) {
 	evaluator := NewInterpreter()
 	evaluator.AddMembers(createTestTemplateFunctions())
 	evaluator.SetTimeout(5 * time.Millisecond)
-	test := func(cas *SuccessCases) {
+	test := func(t *testing.T, cas *SuccessCases) {
 		ast := NewParser(cas.template).Parse()
 		res, err := evaluator.Evaluate(ast)
 		assert.Nil(t, err)
@@ -145,13 +144,17 @@ func TestExampleParser(t *testing.T) {
 	}
 	for _, c := range cases {
 		if c.only {
-			test(&c)
+			t.Run(c.template, func(t *testing.T) {
+				test(t, &c)
+			})
 			return
 		}
 	}
 
 	for _, c := range cases {
-		test(&c)
+		t.Run(c.template, func(t *testing.T) {
+			test(t, &c)
+		})
 	}
 
 }
@@ -190,63 +193,6 @@ func BenchmarkEvaluator(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		evaluator.Evaluate(ast)
 	}
-}
-
-func BenchmarkGvalComplex(b *testing.B) {
-	ogFunctions := createTestTemplateFunctions()
-	vars := map[string]interface{}{
-		"concat": func(args ...string) string {
-			builder := strings.Builder{}
-			for _, arg := range args {
-				builder.WriteString(arg)
-			}
-			return builder.String()
-		},
-		"math": ogFunctions["math"],
-		"deepObject": func() map[string]interface{} {
-			return map[string]interface{}{
-				"deep": map[string]interface{}{
-					"object": map[string]interface{}{
-						"with": map[string]interface{}{
-							"values": []interface{}{3, 2, 1},
-						},
-					},
-				},
-			}
-		},
-		"someObject": ogFunctions["someObject"],
-	}
-
-	for n := 0; n < b.N; n++ {
-		gval.Evaluate(`concat("string", " ", concat("with another", concat(" ", "recursive"))) + " and some advanced math " + math.pow(2, 3) + 56 / 4 * 6 + " and some object access " + someObject.nested.key1 + " with other function calls " + deepObject().deep.object.with.values`, vars)
-	}
-
-}
-func TestGvalComplex(t *testing.T) {
-	ogFunctions := createTestTemplateFunctions()
-	vars := map[string]interface{}{
-		"concat": func(args ...string) string {
-			builder := strings.Builder{}
-			for _, arg := range args {
-				builder.WriteString(arg)
-			}
-			return builder.String()
-		},
-		"math": ogFunctions["math"],
-		"getDeepObject": map[string]interface{}{
-			"deep": map[string]interface{}{
-				"object": map[string]interface{}{
-					"with": map[string]interface{}{
-						"values": []interface{}{3, 2, 1},
-					},
-				},
-			},
-		},
-		"someObject": ogFunctions["someObject"],
-	}
-
-	_, err := gval.Evaluate(`concat("string", " ", concat("with another", concat(" ", "recursive"))) + " and some advanced math " + math.pow(2, 3) + 56 / 4 * 6 + " and some object access " + someObject.nested.key1 + " with other function calls " + getDeepObject.deep.object.with.values`, vars)
-	assert.Nil(t, err)
 }
 
 func createTestTemplateFunctions() map[string]interface{} {
@@ -332,7 +278,7 @@ func createTestTemplateFunctions() map[string]interface{} {
 			}
 			return true, nil
 		},
-		"funcable": func() any {
+		"someFunc": func() any {
 			return func(ctx context.Context, stuff string) string {
 				return "a function with " + stuff
 			}
