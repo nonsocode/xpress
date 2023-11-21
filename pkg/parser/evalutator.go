@@ -61,7 +61,7 @@ func (i *Evaluator) AddMembers(members map[string]interface{}) error {
 }
 
 func (i *Evaluator) visitBinaryExpr(ctx context.Context, expr *Binary) (interface{}, error) {
-	if i.isContextCancelled(ctx) {
+	if ctx.Err() != nil {
 		return nil, EvaluationCancelledErrror
 	}
 	left, err := i.interpret(ctx, expr.Left())
@@ -228,28 +228,28 @@ func (i *Evaluator) visitParseErrorExpr(
 	ctx context.Context,
 	expr *ParseError,
 ) (interface{}, error) {
-	if i.isContextCancelled(ctx) {
+	if ctx.Err() != nil {
 		return nil, EvaluationCancelledErrror
 	}
 	return nil, fmt.Errorf("parse error: %s", expr.Error())
 }
 
 func (i *Evaluator) visitGroupingExpr(ctx context.Context, expr *Grouping) (interface{}, error) {
-	if i.isContextCancelled(ctx) {
+	if ctx.Err() != nil {
 		return nil, EvaluationCancelledErrror
 	}
 	return i.interpret(ctx, expr.Expression())
 }
 
 func (i *Evaluator) visitLiteralExpr(ctx context.Context, expr *Literal) (interface{}, error) {
-	if i.isContextCancelled(ctx) {
+	if ctx.Err() != nil {
 		return nil, EvaluationCancelledErrror
 	}
 	return expr.Value(), nil
 }
 
 func (i *Evaluator) visitUnaryExpr(ctx context.Context, expr *Unary) (interface{}, error) {
-	if i.isContextCancelled(ctx) {
+	if ctx.Err() != nil {
 		return nil, EvaluationCancelledErrror
 	}
 	right, err := i.interpret(ctx, expr.Right())
@@ -266,7 +266,7 @@ func (i *Evaluator) visitUnaryExpr(ctx context.Context, expr *Unary) (interface{
 }
 
 func (i *Evaluator) visitTemplateExpr(ctx context.Context, expr *Template) (interface{}, error) {
-	if i.isContextCancelled(ctx) {
+	if ctx.Err() != nil {
 		return nil, EvaluationCancelledErrror
 	}
 	evaluations := make([]interface{}, 0)
@@ -289,7 +289,7 @@ func (i *Evaluator) visitTemplateExpr(ctx context.Context, expr *Template) (inte
 }
 
 func (i *Evaluator) visitTernaryExpr(ctx context.Context, expr *Ternary) (interface{}, error) {
-	if i.isContextCancelled(ctx) {
+	if ctx.Err() != nil {
 		return nil, EvaluationCancelledErrror
 	}
 	condition, err := i.interpret(ctx, expr.Condition())
@@ -303,7 +303,7 @@ func (i *Evaluator) visitTernaryExpr(ctx context.Context, expr *Ternary) (interf
 }
 
 func (i *Evaluator) visitVariableExpr(ctx context.Context, expr *Variable) (interface{}, error) {
-	if i.isContextCancelled(ctx) {
+	if ctx.Err() != nil {
 		return nil, EvaluationCancelledErrror
 	}
 	if member, ok := i.members[expr.Name().Lexeme()]; ok {
@@ -313,7 +313,7 @@ func (i *Evaluator) visitVariableExpr(ctx context.Context, expr *Variable) (inte
 }
 
 func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, error) {
-	if i.isContextCancelled(ctx) {
+	if ctx.Err() != nil {
 		return nil, EvaluationCancelledErrror
 	}
 	if expr.Object() == nil {
@@ -330,7 +330,7 @@ func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, e
 }
 
 func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) (interface{}, error) {
-	if i.isContextCancelled(ctx) {
+	if ctx.Err() != nil {
 		return nil, EvaluationCancelledErrror
 	}
 	obj, err := i.interpret(ctx, expr.Object())
@@ -362,7 +362,7 @@ func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) (interface{
 }
 
 func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) (interface{}, error) {
-	if e.isContextCancelled(ctx) {
+	if ctx.Err() != nil {
 		return nil, EvaluationCancelledErrror
 	}
 	args := make([]interface{}, 0)
@@ -473,7 +473,7 @@ func identifyCallee(expr *Call) string {
 }
 
 func (i *Evaluator) visitArrayExpr(ctx context.Context, expr *Array) (interface{}, error) {
-	if i.isContextCancelled(ctx) {
+	if ctx.Err() != nil {
 		return nil, EvaluationCancelledErrror
 	}
 	values := make([]interface{}, len(expr.Values()))
@@ -532,17 +532,8 @@ func (i *Evaluator) Evaluate(expr Expr) (interface{}, error) {
 	}
 }
 
-func (i *Evaluator) isContextCancelled(ctx context.Context) bool {
-	select {
-	case <-ctx.Done():
-		return true
-	default:
-		return false
-	}
-}
-
 func (i *Evaluator) interpret(ctx context.Context, expr Expr) (interface{}, error) {
-	if i.isContextCancelled(ctx) {
+	if ctx.Err() != nil {
 		return nil, EvaluationCancelledErrror
 	}
 	return expr.Accept(ctx, i)

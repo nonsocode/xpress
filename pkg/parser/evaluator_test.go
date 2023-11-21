@@ -39,17 +39,39 @@ var cases = []SuccessCases{
 		template: `{{'{{'}} 3 * 3 }} escaped template with template after {{ true ? "yes" : "no" }}`,
 		expect:   "{{ 3 * 3 }} escaped template with template after yes",
 	},
+	{template: "{{ true ? 1 : 2 }}", expect: float64(1)},
+	{template: "{{ false ? 1 : 2 }}", expect: float64(2)},
 	{template: "{{ 4 * 4 }}", expect: float64(16)},
+	{template: "{{ 4 + 4 }}", expect: float64(8)},
+	{template: "{{ 4 + -4 }}", expect: float64(0)},
+	{template: "{{ 10 - 4 }}", expect: float64(6)},
 	{template: "{{ 8 / 4 }}", expect: float64(2)},
 	{template: "{{ 5 > 4 }}", expect: true},
+	{template: "{{ 3 > 4 }}", expect: false},
 	{template: "{{ 5 < 4 }}", expect: false},
+	{template: "{{ 4 < 5 }}", expect: true},
 	{template: "{{ 5 == 5 }}", expect: true},
+	{template: "{{ 5 == 4 }}", expect: false},
 	{template: "{{ 5 != 5 }}", expect: false},
-	{template: "{{ 5 >= 5 }}", expect: true},
-	{template: "{{ 5 <= 5 }}", expect: true},
+	{template: "{{ 5 != 6 }}", expect: true},
 	{template: "{{ 5 >= 4 }}", expect: true},
+	{template: "{{ 5 >= 5 }}", expect: true},
+	{template: "{{ 5 >= 6 }}", expect: false},
 	{template: "{{ 5 <= 4 }}", expect: false},
+	{template: "{{ 5 <= 5 }}", expect: true},
 	{template: "{{ math.abs(-5) }}", expect: float64(5)},
+	{template: "{{ 'a' <= 'b' }}", expect: true},
+	{template: "{{ 'b' <= 'b' }}", expect: true},
+	{template: "{{ 'c' <= 'a' }}", expect: false},
+	{template: "{{ 'a' >= 'b' }}", expect: false},
+	{template: "{{ 'b' >= 'b' }}", expect: true},
+	{template: "{{ 'c' >= 'a' }}", expect: true},
+	{template: "{{ 'a' < 'b' }}", expect: true},
+	{template: "{{ 'b' < 'b' }}", expect: false},
+	{template: "{{ 'c' < 'b' }}", expect: false},
+	{template: "{{ 'a' > 'b' }}", expect: false},
+	{template: "{{ 'b' > 'b' }}", expect: false},
+	{template: "{{ 'c' > 'b' }}", expect: true},
 	{template: "{{ true }}", expect: true},
 	{template: "{{ false }}", expect: false},
 	{template: "{{ !true }}", expect: false},
@@ -87,6 +109,7 @@ var cases = []SuccessCases{
 	{template: "{{ someObject['nested'].key1 }}", expect: "value2"},
 	{template: "{{ someObject.nested['key1'] }}", expect: "value2"},
 	{template: "{{ someObject['nested']['key1'] }}", expect: "value2"},
+	{template: "{{ getDeepObject().deep.object.with.values[0] }}", expect: int(3)},
 }
 
 var errorCases = []ErrorCases{
@@ -158,23 +181,12 @@ func BenchmarkSimpleParser(b *testing.B) {
 		NewParser("{{ 54 * (6 / 2) }}").Parse()
 	}
 }
-func BenchmarkComplexEvaluator(b *testing.B) {
+func BenchmarkEvaluator(b *testing.B) {
 	evaluator := NewInterpreter()
 	evaluator.AddMembers(createTestTemplateFunctions())
 	evaluator.SetTimeout(5 * time.Millisecond)
 	// create a parser with complex expression
-	ast := NewParser("{{ concat('string', ' ', concat('with another', concat(' ', 'recursive'))) }} and some advanced math {{ math.pow(2, 3) + 56 / 4 * 6 }} and some object access {{ someObject.nested.key1 }} with other function calls {{ deepObject.deep.object.with.values }}").Parse()
-	for n := 0; n < b.N; n++ {
-		evaluator.Evaluate(ast)
-	}
-}
-
-func BenchmarkSimpleEvaluator(b *testing.B) {
-	evaluator := NewInterpreter()
-	evaluator.AddMembers(createTestTemplateFunctions())
-	evaluator.SetTimeout(5 * time.Millisecond)
-	// create a parser with complex expression
-	ast := NewParser("{{ 54 * (6 / 2) }}").Parse()
+	ast := NewParser("{{ concat('string', ' ', concat('with another', concat(' ', 'recursive'))) }} and some advanced math {{ math.pow(2, 3) + 56 / 4 * 6 }} and some object access {{ someObject.nested.key1 }} with other function calls {{getDeepObject().deep.object.with.values}}").Parse()
 	for n := 0; n < b.N; n++ {
 		evaluator.Evaluate(ast)
 	}
@@ -206,7 +218,7 @@ func BenchmarkGvalComplex(b *testing.B) {
 	}
 
 	for n := 0; n < b.N; n++ {
-		gval.Evaluate(`concat("string", " ", concat("with another", concat(" ", "recursive"))) + " and some advanced math " + math.pow(2, 3) + 56 / 4 * 6 + " and some object access " + someObject.nested.key1 + " with other function calls " + deepObject.deep.object.with.values`, vars)
+		gval.Evaluate(`concat("string", " ", concat("with another", concat(" ", "recursive"))) + " and some advanced math " + math.pow(2, 3) + 56 / 4 * 6 + " and some object access " + someObject.nested.key1 + " with other function calls " + deepObject().deep.object.with.values`, vars)
 	}
 
 }

@@ -1,4 +1,4 @@
-module github.com/nonsocode/artihm
+module github.com/nonsocode/xpress
 
 go 1.19
 
