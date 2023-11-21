@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	leftDelim    = "{{"
+	leftDelim    = "${{"
 	rightDelim   = "}}"
 	eof          = -1
 	alpha        = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
