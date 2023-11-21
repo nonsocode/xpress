@@ -83,7 +83,7 @@ The template syntax is loosely inspired by javascript syntax. When a template is
 
 ```
 // "${{ 1 + 2 }}" will return number `3`
-// "${{ 1 + 2 }}"  will return string `3 `.
+// "${{ 1 + 2 }} "  will return string `3 `.
 ```
 
 ### Members
