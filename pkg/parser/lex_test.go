@@ -25,12 +25,12 @@ func TestLexerCanLexTextWithNewlines(t *testing.T) {
 }
 
 func TestLexerCanLexAction(t *testing.T) {
-	lex := NewLexer(`${{"Hello"}}`)
+	lex := NewLexer(`@{{"Hello"}}`)
 	lex.run()
 	assert.Equal(
 		t,
 		[]Token{
-			{lexeme: "${{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
+			{lexeme: "@{{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
 			{lexeme: "\"Hello\"", tokenType: STRING, start: 3, line: 1},
 			{lexeme: "}}", tokenType: TEMPLATE_RIGHT_BRACE, start: 10, line: 1},
 			{lexeme: "", tokenType: EOF, start: 12, line: 1},
@@ -40,12 +40,12 @@ func TestLexerCanLexAction(t *testing.T) {
 }
 
 func TestBasicArithmetic(t *testing.T) {
-	lex := NewLexer("${{ 3 * 3 }}")
+	lex := NewLexer("@{{ 3 * 3 }}")
 	lex.run()
 	assert.Equal(
 		t,
 		[]Token{
-			{lexeme: "${{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
+			{lexeme: "@{{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
 			{lexeme: "3", tokenType: NUMBER, start: 4, line: 1},
 			{lexeme: "*", tokenType: STAR, start: 6, line: 1},
 			{lexeme: "3", tokenType: NUMBER, start: 8, line: 1},
@@ -57,12 +57,12 @@ func TestBasicArithmetic(t *testing.T) {
 }
 
 func TestArithmetic(t *testing.T) {
-	lex := NewLexer(`${{1+2-3*4/5}}`)
+	lex := NewLexer(`@{{1+2-3*4/5}}`)
 	lex.run()
 	assert.Equal(
 		t,
 		[]Token{
-			{lexeme: "${{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
+			{lexeme: "@{{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
 			{lexeme: "1", tokenType: NUMBER, start: 3, line: 1},
 			{lexeme: "+", tokenType: PLUS, start: 4, line: 1},
 			{lexeme: "2", tokenType: NUMBER, start: 5, line: 1},
@@ -80,12 +80,12 @@ func TestArithmetic(t *testing.T) {
 }
 
 func TestIdentifiers(t *testing.T) {
-	lex := NewLexer(`${{foo.bar}}`)
+	lex := NewLexer(`@{{foo.bar}}`)
 	lex.run()
 	assert.Equal(
 		t,
 		[]Token{
-			{lexeme: "${{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
+			{lexeme: "@{{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
 			{lexeme: "foo", tokenType: 30, start: 3, line: 1},
 			{lexeme: ".", tokenType: 11, start: 6, line: 1},
 			{lexeme: "bar", tokenType: 30, start: 7, line: 1},
@@ -97,12 +97,12 @@ func TestIdentifiers(t *testing.T) {
 }
 
 func TestFunctionCalls(t *testing.T) {
-	lex := NewLexer(`${{foo(bar, "shift")}}`)
+	lex := NewLexer(`@{{foo(bar, "shift")}}`)
 	lex.run()
 	assert.Equal(
 		t,
 		[]Token{
-			{lexeme: "${{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
+			{lexeme: "@{{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
 			{lexeme: "foo", tokenType: 30, start: 3, line: 1},
 			{lexeme: "(", tokenType: 2, start: 6, line: 1},
 			{lexeme: "bar", tokenType: 30, start: 7, line: 1},
@@ -117,12 +117,12 @@ func TestFunctionCalls(t *testing.T) {
 }
 
 func TestNestedCallsAndChaining(t *testing.T) {
-	lex := NewLexer(`${{foo(bar(baz), "shift").qux + 1}}`)
+	lex := NewLexer(`@{{foo(bar(baz), "shift").qux + 1}}`)
 	lex.run()
 	assert.Equal(
 		t,
 		[]Token{
-			{lexeme: "${{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
+			{lexeme: "@{{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
 			{lexeme: "foo", tokenType: 30, start: 3, line: 1},
 			{lexeme: "(", tokenType: 2, start: 6, line: 1},
 			{lexeme: "bar", tokenType: 30, start: 7, line: 1},
@@ -144,12 +144,12 @@ func TestNestedCallsAndChaining(t *testing.T) {
 }
 
 func TestTernary(t *testing.T) {
-	lex := NewLexer(`${{foo ? bar : baz}}`)
+	lex := NewLexer(`@{{foo ? bar : baz}}`)
 	lex.run()
 	assert.Equal(
 		t,
 		[]Token{
-			{lexeme: "${{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
+			{lexeme: "@{{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
 			{lexeme: "foo", tokenType: IDENTIFIER, start: 3, line: 1},
 			{lexeme: "?", tokenType: QMARK, start: 7, line: 1},
 			{lexeme: "bar", tokenType: IDENTIFIER, start: 9, line: 1},
@@ -163,12 +163,12 @@ func TestTernary(t *testing.T) {
 }
 
 func TestTernaryWithFunctionCalls(t *testing.T) {
-	lex := NewLexer(`${{foo(bar) ? baz(qux) : quux(true)}}`)
+	lex := NewLexer(`@{{foo(bar) ? baz(qux) : quux(true)}}`)
 	lex.run()
 	assert.Equal(
 		t,
 		[]Token{
-			{lexeme: "${{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
+			{lexeme: "@{{", tokenType: TEMPLATE_LEFT_BRACE, start: 0, line: 1},
 			{lexeme: "foo", tokenType: IDENTIFIER, start: 3, line: 1},
 			{lexeme: "(", tokenType: LEFT_PAREN, start: 6, line: 1},
 			{lexeme: "bar", tokenType: IDENTIFIER, start: 7, line: 1},

@@ -11,7 +11,7 @@
 //
 //	func main() {
 //		// create a parser
-//		p := parser.NewParser("Hello, ${{ name }}!")
+//		p := parser.NewParser("Hello, @{{ name }}!")
 //
 //		// parse the template
 //		ast := p.Parse()
@@ -45,7 +45,7 @@
 //		})
 //
 //		// create an AST
-//		ast := parser.NewParser("Hello, ${{ name }}!").Parse()
+//		ast := parser.NewParser("Hello, @{{ name }}!").Parse()
 //
 //		// evaluate the template
 //		res, err := e.Evaluate(ast)
@@ -55,7 +55,7 @@
 //		fmt.Println(res)	// Hello, John!
 //
 //		// create another AST
-//		p = parser.NewParser("Hello, ${{ concat(name, ' Doe') }}!").Parse()
+//		p = parser.NewParser("Hello, @{{ concat(name, ' Doe') }}!").Parse()
 //
 //		// evaluate the template
 //		res, err = e.Evaluate(ast)
@@ -72,8 +72,8 @@
 // return the exact result of the operation regardless of the type of the result. Otherwise,
 // the result will be converted to a string.
 //
-//	// "${{ 1 + 2 }}" will return number `3`
-//	// "${{ 1 + 2 }} "  will return string `3 `.
+//	// "@{{ 1 + 2 }}" will return number `3`
+//	// "@{{ 1 + 2 }} "  will return string `3 `.
 //
 // # Members
 //

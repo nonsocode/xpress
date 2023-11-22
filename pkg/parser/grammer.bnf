@@ -21,7 +21,7 @@ characters        → ( escape | char )* ;
 escape            → "\\" char ;
 LETTER            → [a-zA-Z] ;
 DIGIT             → [0-9] ;
-TEMPLATE_START    → "${{" ;
+TEMPLATE_START    → "@{{" ;
 TEMPLATE_END      → "}}" ;
 QMARK             → "?" ;
 COLON             → ":" ;

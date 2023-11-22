@@ -20,7 +20,7 @@ import (
 
 func main() {
 	// create a parser
-	p := parser.NewParser("Hello, ${{ name }}!")
+	p := parser.NewParser("Hello, @{{ name }}!")
 
 	// parse the template
 	ast := p.Parse()
@@ -56,7 +56,7 @@ func main() {
 	})
 
 	// create an AST
-	ast := parser.NewParser("Hello, ${{ name }}!").Parse()
+	ast := parser.NewParser("Hello, @{{ name }}!").Parse()
 
 	// evaluate the template
 	res, err := e.Evaluate(ast)
@@ -66,7 +66,7 @@ func main() {
 	fmt.Println(res)	// Hello, John!
 
 	// create another AST
-	p = parser.NewParser("Hello, ${{ concat(name, ' Doe') }}!").Parse()
+	p = parser.NewParser("Hello, @{{ concat(name, ' Doe') }}!").Parse()
 
 	// evaluate the template
 	res, err = e.Evaluate(ast)
@@ -82,8 +82,8 @@ func main() {
 The template syntax is loosely inspired by javascript syntax. When a template is evaluated, If the template begins and ends exactly with the template delimiters, the template will be return the exact result of the operation regardless of the type of the result. Otherwise, the result will be converted to a string.
 
 ```
-// "${{ 1 + 2 }}" will return number `3`
-// "${{ 1 + 2 }} "  will return string `3 `.
+// "@{{ 1 + 2 }}" will return number `3`
+// "@{{ 1 + 2 }} "  will return string `3 `.
 ```
 
 ### Members
