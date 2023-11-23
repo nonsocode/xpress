@@ -326,6 +326,9 @@ func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, e
 	if err != nil {
 		return nil, err
 	}
+	if obj == nil {
+		return nil, fmt.Errorf("cannot get property '%s' of nil", expr.Name().Lexeme())
+	}
 
 	// Assume that obj is a map from string to interface{} and get the field.
 	// TODO: Check if obj is actually a map and handle errors.

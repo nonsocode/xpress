@@ -20,6 +20,7 @@ type SuccessCases struct {
 type ErrorCases struct {
 	template string
 	msg      string
+	only     bool
 }
 
 var cases = []SuccessCases{
@@ -100,15 +101,21 @@ var cases = []SuccessCases{
 	{template: "@{{ someObject.nested['key1'] }}", expect: "value2"},
 	{template: "@{{ someObject['nested']['key1'] }}", expect: "value2"},
 	{template: "@{{ getDeepObject().deep.object.with.values[0] }}", expect: int(3)},
+	{template: "@{{ getDeepObject().nonexistent }}", expect: nil},
+	{template: "@{{ getDeepObject()['nonexistent'] }}", expect: nil},
+	{template: "@{{ [1,2,3][1] }}", expect: float64(2)},
 }
 
 var errorCases = []ErrorCases{
-	{"@{{ 5 > }}", "parse error: Error at position 8. Expect expression. got }}"},
-	{"@{{ 5 ", "parse error: Error at position 6. Expect '}}' after expression. got unclosed action"},
-	{"@{{ 5 6 }}", "parse error: Error at position 6. Expect '}}' after expression. got 6"},
-	{"@{{ nonexistentFunction() }}", "cannot call non-function 'nonexistentFunction' of type <nil>"},
-	{"@{{ waitMs(10) }}", "evaluation timed out after 5ms"},
-	{"@{{ longLoopWithContext() }}", "evaluation timed out after 5ms"},
+	{template: "@{{ 5 > }}", msg: "parse error: Error at position 8. Expect expression. got }}"},
+	{template: "@{{ 5 ", msg: "parse error: Error at position 6. Expect '}}' after expression. got unclosed action"},
+	{template: "@{{ 5 6 }}", msg: "parse error: Error at position 6. Expect '}}' after expression. got 6"},
+	{template: "@{{ nonexistentFunction() }}", msg: "cannot call non-function 'nonexistentFunction' of type <nil>"},
+	{template: "@{{ waitMs(10) }}", msg: "evaluation timed out after 5ms"},
+	{template: "@{{ longLoopWithContext() }}", msg: "evaluation timed out after 5ms"},
+	{template: "@{{ getDeepObject().deep.object.with.values[3] }}", msg: "runtime error: index out of range [3] with length 3"},
+	{template: "@{{ getDeepObject().deep.object.with.values[-1] }}", msg: "runtime error: index out of range [-1]"},
+	{template: "@{{ getDeepObject().nonexistent.key }}", msg: "cannot get property 'key' of nil"},
 }
 
 func TestExampleParser(t *testing.T) {
@@ -142,11 +149,25 @@ func TestExampleParserErrors(t *testing.T) {
 	evaluator := NewInterpreter()
 	evaluator.SetTimeout(5 * time.Millisecond)
 	evaluator.SetMembers(createTestTemplateFunctions())
-	for _, c := range errorCases {
-		ast := NewParser(c.template).Parse()
-		_, err := evaluator.Evaluate(context.TODO(), ast)
+	test := func(t *testing.T, cas *ErrorCases) {
+		ast := NewParser(cas.template).Parse()
+		val, err := evaluator.Evaluate(context.TODO(), ast)
+		assert.Nil(t, val)
 		assert.NotNil(t, err)
-		assert.Equal(t, c.msg, err.Error())
+		assert.Equal(t, cas.msg, err.Error())
+	}
+	for _, c := range errorCases {
+		if c.only {
+			t.Run(c.template, func(t *testing.T) {
+				test(t, &c)
+			})
+			return
+		}
+	}
+	for _, c := range errorCases {
+		t.Run(c.template, func(t *testing.T) {
+			test(t, &c)
+		})
 	}
 }
 
