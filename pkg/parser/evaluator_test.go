@@ -104,6 +104,11 @@ var cases = []SuccessCases{
 	{template: "@{{ getDeepObject().nonexistent }}", expect: nil},
 	{template: "@{{ getDeepObject()['nonexistent'] }}", expect: nil},
 	{template: "@{{ [1,2,3][1] }}", expect: float64(2)},
+	{template: `@{{ [
+		1,
+		2,
+		3
+	][1] }}`, expect: float64(2)}, // multiline
 }
 
 var errorCases = []ErrorCases{
