@@ -330,11 +330,19 @@ func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, e
 		return nil, fmt.Errorf("cannot get property '%s' of nil", expr.name.lexeme)
 	}
 
-	value := reflect.ValueOf(obj)
-	if value.Kind() == reflect.Ptr {
-		if field := value.Elem().FieldByName(expr.name.lexeme); field.IsValid() {
-			return field.Interface(), nil
-		} else if method := value.MethodByName(expr.name.lexeme); method.IsValid() {
+	value := reflect.ValueOf(&obj).Elem()  // hack for pointer receivers
+	if value.Kind() == reflect.Interface { // always true
+		elem := value.Elem()
+		switch elem.Kind() {
+		case reflect.Struct:
+			v := reflect.New(elem.Type())
+			v.Elem().Set(elem)
+			value = v
+		case reflect.Ptr:
+			value = elem
+		}
+
+		if method := value.MethodByName(expr.name.lexeme); method.IsValid() {
 			return method.Interface(), nil
 		}
 		value = value.Elem()
@@ -347,13 +355,8 @@ func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, e
 		}
 		return nil, nil // TODO: return error?
 	case reflect.Struct:
-		field := value.FieldByName(expr.name.lexeme)
-		if field.IsValid() {
+		if field := value.FieldByName(expr.name.lexeme); field.IsValid() {
 			return field.Interface(), nil
-		}
-		method := value.MethodByName(expr.name.lexeme)
-		if method.IsValid() {
-			return method.Interface(), nil
 		}
 		return nil, nil // TODO: return error?
 	case reflect.Slice, reflect.Array, reflect.String:
@@ -383,16 +386,24 @@ func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) (interface{
 		return nil, fmt.Errorf("cannot index into nil")
 	}
 
-	value := reflect.ValueOf(obj)
-	if value.Kind() == reflect.Ptr {
+	value := reflect.ValueOf(&obj).Elem()
+	if value.Kind() == reflect.Interface {
+		elem := value.Elem()
 		if key, ok := indexValue.(string); ok {
-			if field := value.Elem().FieldByName(key); field.IsValid() {
-				return field.Interface(), nil
-			} else if method := value.MethodByName(key); method.IsValid() {
+			switch elem.Kind() {
+			case reflect.Struct:
+				v := reflect.New(elem.Type())
+				v.Elem().Set(elem)
+				value = v
+			case reflect.Ptr:
+				value = elem
+			}
+
+			if method := value.MethodByName(key); method.IsValid() {
 				return method.Interface(), nil
 			}
 		}
-		value = value.Elem()
+		value = elem
 	}
 	switch value.Kind() {
 	case reflect.Map:
@@ -410,9 +421,6 @@ func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) (interface{
 			return field.Interface(), nil
 		}
 
-		if method := value.MethodByName(key); method.IsValid() {
-			return method.Interface(), nil
-		}
 		return nil, nil // TODO: return error?
 	case reflect.Slice, reflect.Array, reflect.String:
 		indexFloat, ok := indexValue.(float64)
