@@ -23,7 +23,10 @@ type ErrorCases struct {
 	only     bool
 }
 
-type Dummy struct{}
+type Dummy struct {
+	chassy  string
+	Exposed string
+}
 
 var cases = []SuccessCases{
 	{template: "Just raw text", expect: "Just raw text"},
@@ -97,6 +100,7 @@ var cases = []SuccessCases{
 	{template: "@{{ getDeepObject().deep.object.with.values }}", expect: []interface{}{3, 2, 1}},
 	{template: "@{{ someFunc()('host') }}", expect: "a function with host"},
 	{template: "@{{ someObject.key }}", expect: "value"},
+	{template: `@{{ "somestring".length }}`, expect: 10},
 	{template: "@{{ someObject['key'] }}", expect: "value"},
 	{template: "@{{ someObject.nested.key1 }}", expect: "value2"},
 	{template: "@{{ someObject.nested.struct.Key }}", expect: "StructValue"},

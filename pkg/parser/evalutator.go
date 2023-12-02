@@ -330,23 +330,8 @@ func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, e
 		return nil, fmt.Errorf("cannot get property '%s' of nil", expr.name.lexeme)
 	}
 
-	value := reflect.ValueOf(&obj).Elem()  // hack for pointer receivers
-	if value.Kind() == reflect.Interface { // always true
-		elem := value.Elem()
-		switch elem.Kind() {
-		case reflect.Struct:
-			v := reflect.New(elem.Type())
-			v.Elem().Set(elem)
-			value = v
-		case reflect.Ptr:
-			value = elem
-		}
+	value := reflect.ValueOf(obj) // hack for pointer receivers
 
-		if method := value.MethodByName(expr.name.lexeme); method.IsValid() {
-			return method.Interface(), nil
-		}
-		value = value.Elem()
-	}
 	switch value.Kind() {
 	case reflect.Map:
 		key := reflect.ValueOf(expr.name.lexeme)
@@ -354,9 +339,12 @@ func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, e
 			return value.MapIndex(key).Interface(), nil
 		}
 		return nil, nil // TODO: return error?
-	case reflect.Struct:
-		if field := value.FieldByName(expr.name.lexeme); field.IsValid() {
-			return field.Interface(), nil
+	case reflect.Struct, reflect.Ptr:
+		if field, ok := getFieldFromStructOrPointer(value, expr.name.lexeme); ok {
+			return field, nil
+		}
+		if method, ok := getMethodFromStructOrPointer(value, expr.name.lexeme); ok {
+			return method, nil
 		}
 		return nil, nil // TODO: return error?
 	case reflect.Slice, reflect.Array, reflect.String:
@@ -367,6 +355,44 @@ func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, e
 	default:
 		return nil, fmt.Errorf("cannot get property '%s' of type %T", expr.name.lexeme, obj)
 	}
+}
+
+func getFieldFromStructOrPointer(value reflect.Value, name string) (interface{}, bool) {
+	switch value.Kind() {
+	case reflect.Ptr:
+		value = value.Elem()
+	case reflect.Struct:
+	default:
+		return nil, false
+	}
+	if field := value.FieldByName(name); field.IsValid() {
+		return field.Interface(), true
+	}
+	return nil, false
+}
+
+func getMethodFromStructOrPointer(value reflect.Value, name string) (interface{}, bool) {
+	if method := value.MethodByName(name); method.IsValid() {
+		return method.Interface(), true
+	}
+	if value.CanAddr() {
+		if method := value.Addr().MethodByName(name); method.IsValid() {
+			return method.Interface(), true
+		}
+	}
+	switch value.Kind() {
+	case reflect.Ptr:
+	case reflect.Struct:
+		v := reflect.New(value.Type())
+		v.Elem().Set(value)
+		value = v
+	default:
+		return nil, false
+	}
+	if method := value.MethodByName(name); method.IsValid() {
+		return method.Interface(), true
+	}
+	return nil, false
 }
 
 func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) (interface{}, error) {
@@ -386,25 +412,8 @@ func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) (interface{
 		return nil, fmt.Errorf("cannot index into nil")
 	}
 
-	value := reflect.ValueOf(&obj).Elem()
-	if value.Kind() == reflect.Interface {
-		elem := value.Elem()
-		if key, ok := indexValue.(string); ok {
-			switch elem.Kind() {
-			case reflect.Struct:
-				v := reflect.New(elem.Type())
-				v.Elem().Set(elem)
-				value = v
-			case reflect.Ptr:
-				value = elem
-			}
+	value := reflect.ValueOf(obj)
 
-			if method := value.MethodByName(key); method.IsValid() {
-				return method.Interface(), nil
-			}
-		}
-		value = elem
-	}
 	switch value.Kind() {
 	case reflect.Map:
 		key := reflect.ValueOf(indexValue)
@@ -412,13 +421,16 @@ func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) (interface{
 			return value.MapIndex(key).Interface(), nil
 		}
 		return nil, nil // TODO: return error?
-	case reflect.Struct:
+	case reflect.Struct, reflect.Ptr:
 		key, ok := indexValue.(string)
 		if !ok {
 			return nil, fmt.Errorf("property '%s' does not exist", indexValue)
 		}
-		if field := value.FieldByName(key); field.IsValid() {
-			return field.Interface(), nil
+		if field, ok := getFieldFromStructOrPointer(value, key); ok {
+			return field, nil
+		}
+		if method, ok := getMethodFromStructOrPointer(value, key); ok {
+			return method, nil
 		}
 
 		return nil, nil // TODO: return error?
