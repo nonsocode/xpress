@@ -87,22 +87,6 @@ type (
 	stateFn func(*Lexer) stateFn
 )
 
-func (t Token) Lexeme() string {
-	return t.lexeme
-}
-
-func (t Token) Type() TokenType {
-	return t.tokenType
-}
-
-func (t Token) Start() int {
-	return t.start
-}
-
-func (t Token) Line() int {
-	return t.line
-}
-
 func (t Token) String() string {
 	return fmt.Sprintf("%v %v %v", t.tokenType, t.lexeme, t.line)
 }

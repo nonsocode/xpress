@@ -87,18 +87,18 @@ func NewJSONPrinter() *JSONPrinter {
 }
 
 func (jp *JSONPrinter) visitBinaryExpr(ctx context.Context, expr *Binary) (interface{}, error) {
-	left, _ := expr.Left().Accept(ctx, jp)
-	right, _ := expr.Right().Accept(ctx, jp)
+	left, _ := expr.left.Accept(ctx, jp)
+	right, _ := expr.right.Accept(ctx, jp)
 	return &JBinary{
 		JNode:    JNode{Type: "Binary"},
 		Left:     left,
-		Operator: expr.Operator().Type().String(),
+		Operator: expr.operator.tokenType.String(),
 		Right:    right,
 	}, nil
 }
 
 func (jp *JSONPrinter) visitGroupingExpr(ctx context.Context, expr *Grouping) (interface{}, error) {
-	expression, _ := expr.Expression().Accept(ctx, jp)
+	expression, _ := expr.expression.Accept(ctx, jp)
 	return &JGrouping{
 		JNode:      JNode{Type: "Grouping"},
 		Expression: expression,
@@ -108,23 +108,23 @@ func (jp *JSONPrinter) visitGroupingExpr(ctx context.Context, expr *Grouping) (i
 func (jp *JSONPrinter) visitLiteralExpr(ctx context.Context, expr *Literal) (interface{}, error) {
 	return &JLiteral{
 		JNode: JNode{Type: "Literal"},
-		Value: expr.Value(),
-		Raw:   expr.Raw(),
+		Value: expr.value,
+		Raw:   expr.raw,
 	}, nil
 }
 
 func (jp *JSONPrinter) visitUnaryExpr(ctx context.Context, expr *Unary) (interface{}, error) {
-	right, _ := expr.Right().Accept(ctx, jp)
+	right, _ := expr.right.Accept(ctx, jp)
 	return &JUnary{
 		JNode:    JNode{Type: "Unary"},
-		Operator: expr.Operator().Type().String(),
+		Operator: expr.operator.tokenType.String(),
 		Right:    right,
 	}, nil
 }
 
 func (jp *JSONPrinter) visitTemplateExpr(ctx context.Context, expr *Template) (interface{}, error) {
-	exprs := make([]interface{}, len(expr.Expressions()))
-	for i, e := range expr.Expressions() {
+	exprs := make([]interface{}, len(expr.expressions))
+	for i, e := range expr.expressions {
 		exprs[i], _ = e.Accept(ctx, jp)
 	}
 	return &JTemplate{
@@ -134,9 +134,9 @@ func (jp *JSONPrinter) visitTemplateExpr(ctx context.Context, expr *Template) (i
 }
 
 func (jp *JSONPrinter) visitTernaryExpr(ctx context.Context, expr *Ternary) (interface{}, error) {
-	cond, _ := expr.Condition().Accept(ctx, jp)
-	then, _ := expr.TrueExpr().Accept(ctx, jp)
-	els, _ := expr.FalseExpr().Accept(ctx, jp)
+	cond, _ := expr.condition.Accept(ctx, jp)
+	then, _ := expr.trueExpr.Accept(ctx, jp)
+	els, _ := expr.falseExpr.Accept(ctx, jp)
 	return &JTernary{
 		JNode: JNode{Type: "Ternary"},
 		Cond:  cond,
@@ -146,18 +146,18 @@ func (jp *JSONPrinter) visitTernaryExpr(ctx context.Context, expr *Ternary) (int
 }
 
 func (jp *JSONPrinter) visitGetExpr(ctx context.Context, expr *Get) (interface{}, error) {
-	obj, _ := expr.Object().Accept(ctx, jp)
+	obj, _ := expr.object.Accept(ctx, jp)
 
 	return &JGet{
 		JNode:      JNode{Type: "Get"},
 		Object:     obj,
-		Identifier: expr.Name().Lexeme(),
+		Identifier: expr.name.lexeme,
 	}, nil
 }
 
 func (jp *JSONPrinter) visitIndexExpr(ctx context.Context, expr *Index) (interface{}, error) {
-	obj, _ := expr.Object().Accept(ctx, jp)
-	index, _ := expr.Index().Accept(ctx, jp)
+	obj, _ := expr.object.Accept(ctx, jp)
+	index, _ := expr.index.Accept(ctx, jp)
 	return &JIndex{
 		JNode:  JNode{Type: "Index"},
 		Object: obj,
@@ -168,14 +168,14 @@ func (jp *JSONPrinter) visitIndexExpr(ctx context.Context, expr *Index) (interfa
 func (jp *JSONPrinter) visitVariableExpr(ctx context.Context, expr *Variable) (interface{}, error) {
 	return &JVariable{
 		JNode: JNode{Type: "Variable"},
-		Name:  expr.Name().String(),
+		Name:  expr.name.String(),
 	}, nil
 }
 
 func (jp *JSONPrinter) visitCallExpr(ctx context.Context, expr *Call) (interface{}, error) {
-	callee, _ := expr.Callee().Accept(ctx, jp)
-	args := make([]interface{}, len(expr.Arguments()))
-	for i, a := range expr.Arguments() {
+	callee, _ := expr.callee.Accept(ctx, jp)
+	args := make([]interface{}, len(expr.arguments))
+	for i, a := range expr.arguments {
 		args[i], _ = a.Accept(ctx, jp)
 	}
 	return &JCall{
@@ -186,8 +186,8 @@ func (jp *JSONPrinter) visitCallExpr(ctx context.Context, expr *Call) (interface
 }
 
 func (jp *JSONPrinter) visitArrayExpr(ctx context.Context, expr *Array) (interface{}, error) {
-	values := make([]interface{}, len(expr.Values()))
-	for i, v := range expr.Values() {
+	values := make([]interface{}, len(expr.values))
+	for i, v := range expr.values {
 		values[i], _ = v.Accept(ctx, jp)
 	}
 	return &JArray{
