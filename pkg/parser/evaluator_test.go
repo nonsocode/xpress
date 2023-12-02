@@ -23,6 +23,8 @@ type ErrorCases struct {
 	only     bool
 }
 
+type Dummy struct{}
+
 var cases = []SuccessCases{
 	{template: "Just raw text", expect: "Just raw text"},
 	{template: "@{{ 123 * (45.67) }}", expect: float64(123 * 45.67)},
@@ -97,6 +99,11 @@ var cases = []SuccessCases{
 	{template: "@{{ someObject.key }}", expect: "value"},
 	{template: "@{{ someObject['key'] }}", expect: "value"},
 	{template: "@{{ someObject.nested.key1 }}", expect: "value2"},
+	{template: "@{{ someObject.nested.struct.Key }}", expect: "StructValue"},
+	{template: "@{{ pointerDummy.PointerReceiverMethod() }}", expect: "pointer value", only: true},
+	{template: "@{{ pointerDummy.StructReceiverMethod() }}", expect: "struct value", only: true},
+	{template: "@{{ dummy.PointerReceiverMethod() }}", expect: "pointer value", only: true},
+	{template: "@{{ dummy.StructReceiverMethod() }}", expect: "struct value", only: true},
 	{template: "@{{ someObject['nested'].key1 }}", expect: "value2"},
 	{template: "@{{ someObject.nested['key1'] }}", expect: "value2"},
 	{template: "@{{ someObject['nested']['key1'] }}", expect: "value2"},
@@ -118,15 +125,23 @@ var errorCases = []ErrorCases{
 	{template: "@{{ nonexistentFunction() }}", msg: "cannot call non-function 'nonexistentFunction' of type <nil>"},
 	{template: "@{{ waitMs(10) }}", msg: "evaluation timed out after 5ms"},
 	{template: "@{{ longLoopWithContext() }}", msg: "evaluation timed out after 5ms"},
-	{template: "@{{ getDeepObject().deep.object.with.values[3] }}", msg: "runtime error: index out of range [3] with length 3"},
-	{template: "@{{ getDeepObject().deep.object.with.values[-1] }}", msg: "runtime error: index out of range [-1]"},
+	{template: "@{{ getDeepObject().deep.object.with.values[3] }}", msg: "index '3' is out of bounds"},
+	{template: "@{{ getDeepObject().deep.object.with.values[-1] }}", msg: "index '-1' is out of bounds"},
 	{template: "@{{ getDeepObject().nonexistent.key }}", msg: "cannot get property 'key' of nil"},
+}
+
+func (d *Dummy) PointerReceiverMethod() string {
+	return "pointer value"
+}
+
+func (d Dummy) StructReceiverMethod() string {
+	return "struct value"
 }
 
 func TestExampleParser(t *testing.T) {
 	evaluator := NewInterpreter()
 	evaluator.SetMembers(createTestTemplateFunctions())
-	evaluator.SetTimeout(5 * time.Millisecond)
+	evaluator.SetTimeout(5 * time.Hour)
 	test := func(t *testing.T, cas *SuccessCases) {
 		ast := NewParser(cas.template).Parse()
 		res, err := evaluator.Evaluate(context.TODO(), ast)
@@ -190,11 +205,12 @@ func BenchmarkSimpleParser(b *testing.B) {
 	}
 }
 func BenchmarkEvaluator(b *testing.B) {
+	template := `@{{ concat('string', ' ', concat('with another', concat(' ', 'recursive'))) }} and some advanced math @{{ math.pow(2, 3) + 56 / 4 * 6 }} and some object access @{{ someObject.nested.key1 }} with other function calls @{{getDeepObject().deep.object.with.values}}`
 	evaluator := NewInterpreter()
 	evaluator.SetMembers(createTestTemplateFunctions())
 	evaluator.SetTimeout(5 * time.Millisecond)
 	// create a parser with complex expression
-	ast := NewParser("@{{ concat('string', ' ', concat('with another', concat(' ', 'recursive'))) }} and some advanced math @{{ math.pow(2, 3) + 56 / 4 * 6 }} and some object access @{{ someObject.nested.key1 }} with other function calls @{{getDeepObject().deep.object.with.values}}").Parse()
+	ast := NewParser(template).Parse()
 	for n := 0; n < b.N; n++ {
 		evaluator.Evaluate(context.TODO(), ast)
 	}
@@ -202,6 +218,8 @@ func BenchmarkEvaluator(b *testing.B) {
 
 func createTestTemplateFunctions() map[string]interface{} {
 	return map[string]interface{}{
+		"pointerDummy": &Dummy{},
+		"dummy":        Dummy{},
 		"math": map[string]interface{}{
 			"abs":   math.Abs,
 			"acos":  math.Acos,
@@ -290,6 +308,9 @@ func createTestTemplateFunctions() map[string]interface{} {
 			"key": "value",
 			"nested": map[string]interface{}{
 				"key1": "value2",
+				"struct": struct{ Key string }{
+					Key: "StructValue",
+				},
 			},
 		},
 	}

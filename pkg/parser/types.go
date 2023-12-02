@@ -1,6 +1,8 @@
 package parser
 
-import "context"
+import (
+	"context"
+)
 
 type (
 	Visitor interface {

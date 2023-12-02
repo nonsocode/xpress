@@ -330,9 +330,40 @@ func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, e
 		return nil, fmt.Errorf("cannot get property '%s' of nil", expr.name.lexeme)
 	}
 
-	// Assume that obj is a map from string to interface{} and get the field.
-	// TODO: Check if obj is actually a map and handle errors.
-	return obj.(map[string]interface{})[expr.name.lexeme], nil
+	value := reflect.ValueOf(obj)
+	if value.Kind() == reflect.Ptr {
+		if field := value.Elem().FieldByName(expr.name.lexeme); field.IsValid() {
+			return field.Interface(), nil
+		} else if method := value.MethodByName(expr.name.lexeme); method.IsValid() {
+			return method.Interface(), nil
+		}
+		value = value.Elem()
+	}
+	switch value.Kind() {
+	case reflect.Map:
+		key := reflect.ValueOf(expr.name.lexeme)
+		if value.MapIndex(key).IsValid() {
+			return value.MapIndex(key).Interface(), nil
+		}
+		return nil, nil // TODO: return error?
+	case reflect.Struct:
+		field := value.FieldByName(expr.name.lexeme)
+		if field.IsValid() {
+			return field.Interface(), nil
+		}
+		method := value.MethodByName(expr.name.lexeme)
+		if method.IsValid() {
+			return method.Interface(), nil
+		}
+		return nil, nil // TODO: return error?
+	case reflect.Slice, reflect.Array, reflect.String:
+		if expr.name.lexeme == "length" {
+			return value.Len(), nil
+		}
+		return nil, fmt.Errorf("property '%s' does not exist", expr.name.lexeme)
+	default:
+		return nil, fmt.Errorf("cannot get property '%s' of type %T", expr.name.lexeme, obj)
+	}
 }
 
 func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) (interface{}, error) {
@@ -347,21 +378,52 @@ func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) (interface{
 	if err != nil {
 		return nil, err
 	}
-	// Assume that obj is a map from string to interface{} and get the field.
-	switch obj.(type) {
-	case []interface{}:
-		indexNum, ok := indexValue.(float64)
+
+	if obj == nil {
+		return nil, fmt.Errorf("cannot index into nil")
+	}
+
+	value := reflect.ValueOf(obj)
+	if value.Kind() == reflect.Ptr {
+		if key, ok := indexValue.(string); ok {
+			if field := value.Elem().FieldByName(key); field.IsValid() {
+				return field.Interface(), nil
+			} else if method := value.MethodByName(key); method.IsValid() {
+				return method.Interface(), nil
+			}
+		}
+		value = value.Elem()
+	}
+	switch value.Kind() {
+	case reflect.Map:
+		key := reflect.ValueOf(indexValue)
+		if value.MapIndex(key).IsValid() {
+			return value.MapIndex(key).Interface(), nil
+		}
+		return nil, nil // TODO: return error?
+	case reflect.Struct:
+		key, ok := indexValue.(string)
 		if !ok {
-			return nil, fmt.Errorf("cannot index into array with non-number key %v", indexValue)
+			return nil, fmt.Errorf("property '%s' does not exist", indexValue)
+		}
+		if field := value.FieldByName(key); field.IsValid() {
+			return field.Interface(), nil
 		}
 
-		return obj.([]interface{})[int(indexNum)], nil
-	case map[string]interface{}:
-		indexValueStr, ok := indexValue.(string)
-		if !ok {
-			return nil, fmt.Errorf("cannot index into map with non-string key %v", indexValue)
+		if method := value.MethodByName(key); method.IsValid() {
+			return method.Interface(), nil
 		}
-		return obj.(map[string]interface{})[indexValueStr], nil
+		return nil, nil // TODO: return error?
+	case reflect.Slice, reflect.Array, reflect.String:
+		indexFloat, ok := indexValue.(float64)
+		if !ok {
+			return nil, fmt.Errorf("index '%v' is not an integer", indexValue)
+		}
+		index := int(indexFloat)
+		if index < 0 || index >= value.Len() {
+			return nil, fmt.Errorf("index '%v' is out of bounds", indexValue)
+		}
+		return value.Index(index).Interface(), nil
 	default:
 		return nil, fmt.Errorf("cannot index into type %T", obj)
 	}
