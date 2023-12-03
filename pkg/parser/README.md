@@ -13,18 +13,12 @@ import "github.com/nonsocode/xpress/pkg/parser"
 - [type Array](<#Array>)
   - [func NewArray\(values \[\]Expr\) \*Array](<#NewArray>)
   - [func \(a \*Array\) Accept\(ctx context.Context, v Visitor\) \(interface\{\}, error\)](<#Array.Accept>)
-  - [func \(a \*Array\) Values\(\) \[\]Expr](<#Array.Values>)
 - [type Binary](<#Binary>)
   - [func NewBinary\(left Expr, operator Token, right Expr\) \*Binary](<#NewBinary>)
   - [func \(b \*Binary\) Accept\(ctx context.Context, v Visitor\) \(interface\{\}, error\)](<#Binary.Accept>)
-  - [func \(b \*Binary\) Left\(\) Expr](<#Binary.Left>)
-  - [func \(b \*Binary\) Operator\(\) Token](<#Binary.Operator>)
-  - [func \(b \*Binary\) Right\(\) Expr](<#Binary.Right>)
 - [type Call](<#Call>)
   - [func NewCall\(callee Expr, arguments \[\]Expr\) \*Call](<#NewCall>)
   - [func \(c \*Call\) Accept\(ctx context.Context, v Visitor\) \(interface\{\}, error\)](<#Call.Accept>)
-  - [func \(c \*Call\) Arguments\(\) \[\]Expr](<#Call.Arguments>)
-  - [func \(c \*Call\) Callee\(\) Expr](<#Call.Callee>)
 - [type EvaluationError](<#EvaluationError>)
   - [func NewEvaluationError\(message string, args ...interface\{\}\) \*EvaluationError](<#NewEvaluationError>)
   - [func \(e \*EvaluationError\) Error\(\) string](<#EvaluationError.Error>)
@@ -38,17 +32,12 @@ import "github.com/nonsocode/xpress/pkg/parser"
 - [type Get](<#Get>)
   - [func NewGet\(object Expr, name Token\) \*Get](<#NewGet>)
   - [func \(g \*Get\) Accept\(ctx context.Context, v Visitor\) \(interface\{\}, error\)](<#Get.Accept>)
-  - [func \(g \*Get\) Name\(\) Token](<#Get.Name>)
-  - [func \(g \*Get\) Object\(\) Expr](<#Get.Object>)
 - [type Grouping](<#Grouping>)
   - [func NewGrouping\(expression Expr\) \*Grouping](<#NewGrouping>)
   - [func \(g \*Grouping\) Accept\(ctx context.Context, v Visitor\) \(interface\{\}, error\)](<#Grouping.Accept>)
-  - [func \(g \*Grouping\) Expression\(\) Expr](<#Grouping.Expression>)
 - [type Index](<#Index>)
   - [func NewIndex\(object Expr, index Expr\) \*Index](<#NewIndex>)
   - [func \(i \*Index\) Accept\(ctx context.Context, v Visitor\) \(interface\{\}, error\)](<#Index.Accept>)
-  - [func \(i \*Index\) Index\(\) Expr](<#Index.Index>)
-  - [func \(i \*Index\) Object\(\) Expr](<#Index.Object>)
 - [type Interpreter](<#Interpreter>)
 - [type JArray](<#JArray>)
 - [type JBinary](<#JBinary>)
@@ -57,6 +46,8 @@ import "github.com/nonsocode/xpress/pkg/parser"
 - [type JGrouping](<#JGrouping>)
 - [type JIndex](<#JIndex>)
 - [type JLiteral](<#JLiteral>)
+- [type JMap](<#JMap>)
+- [type JMapEntry](<#JMapEntry>)
 - [type JNode](<#JNode>)
 - [type JParseError](<#JParseError>)
 - [type JSONPrinter](<#JSONPrinter>)
@@ -71,8 +62,12 @@ import "github.com/nonsocode/xpress/pkg/parser"
 - [type Literal](<#Literal>)
   - [func NewLiteral\(value interface\{\}, raw string\) \*Literal](<#NewLiteral>)
   - [func \(l \*Literal\) Accept\(ctx context.Context, v Visitor\) \(interface\{\}, error\)](<#Literal.Accept>)
-  - [func \(l \*Literal\) Raw\(\) string](<#Literal.Raw>)
-  - [func \(l \*Literal\) Value\(\) interface\{\}](<#Literal.Value>)
+- [type Map](<#Map>)
+  - [func NewMap\(entries \[\]\*MapEntry\) \*Map](<#NewMap>)
+  - [func \(m \*Map\) Accept\(ctx context.Context, v Visitor\) \(interface\{\}, error\)](<#Map.Accept>)
+- [type MapEntry](<#MapEntry>)
+  - [func NewMapEntry\(key Expr, value Expr\) \*MapEntry](<#NewMapEntry>)
+  - [func \(me \*MapEntry\) Accept\(ctx context.Context, v Visitor\) \(interface\{\}, error\)](<#MapEntry.Accept>)
 - [type ParseError](<#ParseError>)
   - [func \(p \*ParseError\) Accept\(ctx context.Context, v Visitor\) \(interface\{\}, error\)](<#ParseError.Accept>)
   - [func \(pe \*ParseError\) Error\(\) string](<#ParseError.Error>)
@@ -82,30 +77,19 @@ import "github.com/nonsocode/xpress/pkg/parser"
 - [type Template](<#Template>)
   - [func NewTemplate\(expressions \[\]Expr\) \*Template](<#NewTemplate>)
   - [func \(t \*Template\) Accept\(ctx context.Context, v Visitor\) \(interface\{\}, error\)](<#Template.Accept>)
-  - [func \(t \*Template\) Expressions\(\) \[\]Expr](<#Template.Expressions>)
 - [type Ternary](<#Ternary>)
   - [func NewTernary\(condition Expr, trueExpr Expr, falseExpr Expr\) \*Ternary](<#NewTernary>)
   - [func \(t \*Ternary\) Accept\(ctx context.Context, v Visitor\) \(interface\{\}, error\)](<#Ternary.Accept>)
-  - [func \(t \*Ternary\) Condition\(\) Expr](<#Ternary.Condition>)
-  - [func \(t \*Ternary\) FalseExpr\(\) Expr](<#Ternary.FalseExpr>)
-  - [func \(t \*Ternary\) TrueExpr\(\) Expr](<#Ternary.TrueExpr>)
 - [type Token](<#Token>)
-  - [func \(t Token\) Lexeme\(\) string](<#Token.Lexeme>)
-  - [func \(t Token\) Line\(\) int](<#Token.Line>)
-  - [func \(t Token\) Start\(\) int](<#Token.Start>)
   - [func \(t Token\) String\(\) string](<#Token.String>)
-  - [func \(t Token\) Type\(\) TokenType](<#Token.Type>)
 - [type TokenType](<#TokenType>)
   - [func \(t TokenType\) String\(\) string](<#TokenType.String>)
 - [type Unary](<#Unary>)
   - [func NewUnary\(operator Token, right Expr\) \*Unary](<#NewUnary>)
   - [func \(u \*Unary\) Accept\(ctx context.Context, v Visitor\) \(interface\{\}, error\)](<#Unary.Accept>)
-  - [func \(u \*Unary\) Operator\(\) Token](<#Unary.Operator>)
-  - [func \(u \*Unary\) Right\(\) Expr](<#Unary.Right>)
 - [type Variable](<#Variable>)
   - [func NewVariable\(name Token\) \*Variable](<#NewVariable>)
   - [func \(v \*Variable\) Accept\(ctx context.Context, vis Visitor\) \(interface\{\}, error\)](<#Variable.Accept>)
-  - [func \(v \*Variable\) Name\(\) Token](<#Variable.Name>)
 - [type Visitor](<#Visitor>)
 
 
@@ -142,7 +126,7 @@ type Array struct {
 ```
 
 <a name="NewArray"></a>
-### func [NewArray](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L217>)
+### func [NewArray](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L154>)
 
 ```go
 func NewArray(values []Expr) *Array
@@ -151,19 +135,10 @@ func NewArray(values []Expr) *Array
 
 
 <a name="Array.Accept"></a>
-### func \(\*Array\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L221>)
+### func \(\*Array\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L158>)
 
 ```go
 func (a *Array) Accept(ctx context.Context, v Visitor) (interface{}, error)
-```
-
-
-
-<a name="Array.Values"></a>
-### func \(\*Array\) [Values](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L225>)
-
-```go
-func (a *Array) Values() []Expr
 ```
 
 
@@ -180,7 +155,7 @@ type Binary struct {
 ```
 
 <a name="NewBinary"></a>
-### func [NewBinary](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L73>)
+### func [NewBinary](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L82>)
 
 ```go
 func NewBinary(left Expr, operator Token, right Expr) *Binary
@@ -189,37 +164,10 @@ func NewBinary(left Expr, operator Token, right Expr) *Binary
 
 
 <a name="Binary.Accept"></a>
-### func \(\*Binary\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L77>)
+### func \(\*Binary\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L86>)
 
 ```go
 func (b *Binary) Accept(ctx context.Context, v Visitor) (interface{}, error)
-```
-
-
-
-<a name="Binary.Left"></a>
-### func \(\*Binary\) [Left](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L81>)
-
-```go
-func (b *Binary) Left() Expr
-```
-
-
-
-<a name="Binary.Operator"></a>
-### func \(\*Binary\) [Operator](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L85>)
-
-```go
-func (b *Binary) Operator() Token
-```
-
-
-
-<a name="Binary.Right"></a>
-### func \(\*Binary\) [Right](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L89>)
-
-```go
-func (b *Binary) Right() Expr
 ```
 
 
@@ -236,7 +184,7 @@ type Call struct {
 ```
 
 <a name="NewCall"></a>
-### func [NewCall](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L185>)
+### func [NewCall](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L138>)
 
 ```go
 func NewCall(callee Expr, arguments []Expr) *Call
@@ -245,28 +193,10 @@ func NewCall(callee Expr, arguments []Expr) *Call
 
 
 <a name="Call.Accept"></a>
-### func \(\*Call\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L189>)
+### func \(\*Call\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L142>)
 
 ```go
 func (c *Call) Accept(ctx context.Context, v Visitor) (interface{}, error)
-```
-
-
-
-<a name="Call.Arguments"></a>
-### func \(\*Call\) [Arguments](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L197>)
-
-```go
-func (c *Call) Arguments() []Expr
-```
-
-
-
-<a name="Call.Callee"></a>
-### func \(\*Call\) [Callee](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L193>)
-
-```go
-func (c *Call) Callee() Expr
 ```
 
 
@@ -330,7 +260,7 @@ func (i *Evaluator) AddMember(name string, member interface{}) error
 
 
 <a name="Evaluator.Evaluate"></a>
-### func \(\*Evaluator\) [Evaluate](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/evalutator.go#L504>)
+### func \(\*Evaluator\) [Evaluate](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/evalutator.go#L671>)
 
 ```go
 func (i *Evaluator) Evaluate(ctx context.Context, expr Expr) (interface{}, error)
@@ -379,7 +309,7 @@ type Get struct {
 ```
 
 <a name="NewGet"></a>
-### func [NewGet](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L169>)
+### func [NewGet](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L130>)
 
 ```go
 func NewGet(object Expr, name Token) *Get
@@ -388,28 +318,10 @@ func NewGet(object Expr, name Token) *Get
 
 
 <a name="Get.Accept"></a>
-### func \(\*Get\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L173>)
+### func \(\*Get\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L134>)
 
 ```go
 func (g *Get) Accept(ctx context.Context, v Visitor) (interface{}, error)
-```
-
-
-
-<a name="Get.Name"></a>
-### func \(\*Get\) [Name](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L181>)
-
-```go
-func (g *Get) Name() Token
-```
-
-
-
-<a name="Get.Object"></a>
-### func \(\*Get\) [Object](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L177>)
-
-```go
-func (g *Get) Object() Expr
 ```
 
 
@@ -426,7 +338,7 @@ type Grouping struct {
 ```
 
 <a name="NewGrouping"></a>
-### func [NewGrouping](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L93>)
+### func [NewGrouping](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L90>)
 
 ```go
 func NewGrouping(expression Expr) *Grouping
@@ -435,19 +347,10 @@ func NewGrouping(expression Expr) *Grouping
 
 
 <a name="Grouping.Accept"></a>
-### func \(\*Grouping\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L97>)
+### func \(\*Grouping\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L94>)
 
 ```go
 func (g *Grouping) Accept(ctx context.Context, v Visitor) (interface{}, error)
-```
-
-
-
-<a name="Grouping.Expression"></a>
-### func \(\*Grouping\) [Expression](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L101>)
-
-```go
-func (g *Grouping) Expression() Expr
 ```
 
 
@@ -464,7 +367,7 @@ type Index struct {
 ```
 
 <a name="NewIndex"></a>
-### func [NewIndex](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L201>)
+### func [NewIndex](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L146>)
 
 ```go
 func NewIndex(object Expr, index Expr) *Index
@@ -473,7 +376,7 @@ func NewIndex(object Expr, index Expr) *Index
 
 
 <a name="Index.Accept"></a>
-### func \(\*Index\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L205>)
+### func \(\*Index\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L150>)
 
 ```go
 func (i *Index) Accept(ctx context.Context, v Visitor) (interface{}, error)
@@ -481,26 +384,8 @@ func (i *Index) Accept(ctx context.Context, v Visitor) (interface{}, error)
 
 
 
-<a name="Index.Index"></a>
-### func \(\*Index\) [Index](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L213>)
-
-```go
-func (i *Index) Index() Expr
-```
-
-
-
-<a name="Index.Object"></a>
-### func \(\*Index\) [Object](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L209>)
-
-```go
-func (i *Index) Object() Expr
-```
-
-
-
 <a name="Interpreter"></a>
-## type [Interpreter](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/types.go#L22-L24>)
+## type [Interpreter](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/types.go#L26-L28>)
 
 
 
@@ -600,6 +485,31 @@ type JLiteral struct {
 }
 ```
 
+<a name="JMap"></a>
+## type [JMap](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/jsonprinter.go#L84-L87>)
+
+
+
+```go
+type JMap struct {
+    JNode   `json:",inline"`
+    Entries []interface{} `json:"entries"`
+}
+```
+
+<a name="JMapEntry"></a>
+## type [JMapEntry](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/jsonprinter.go#L89-L93>)
+
+
+
+```go
+type JMapEntry struct {
+    JNode `json:",inline"`
+    Key   interface{} `json:"key"`
+    Value interface{} `json:"value"`
+}
+```
+
 <a name="JNode"></a>
 ## type [JNode](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/jsonprinter.go#L11-L13>)
 
@@ -634,7 +544,7 @@ type JSONPrinter struct {
 ```
 
 <a name="NewJSONPrinter"></a>
-### func [NewJSONPrinter](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/jsonprinter.go#L85>)
+### func [NewJSONPrinter](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/jsonprinter.go#L96>)
 
 ```go
 func NewJSONPrinter() *JSONPrinter
@@ -643,7 +553,7 @@ func NewJSONPrinter() *JSONPrinter
 
 
 <a name="JSONPrinter.Print"></a>
-### func \(\*JSONPrinter\) [Print](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/jsonprinter.go#L209>)
+### func \(\*JSONPrinter\) [Print](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/jsonprinter.go#L240>)
 
 ```go
 func (jp *JSONPrinter) Print(expr Expr) (string, error)
@@ -703,7 +613,7 @@ type JVariable struct {
 ```
 
 <a name="Lexer"></a>
-## type [Lexer](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/lex.go#L79-L86>)
+## type [Lexer](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/lex.go#L79-L87>)
 
 
 
@@ -714,7 +624,7 @@ type Lexer struct {
 ```
 
 <a name="NewLexer"></a>
-### func [NewLexer](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/lex.go#L114>)
+### func [NewLexer](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/lex.go#L99>)
 
 ```go
 func NewLexer(source string) *Lexer
@@ -734,7 +644,7 @@ type Literal struct {
 ```
 
 <a name="NewLiteral"></a>
-### func [NewLiteral](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L105>)
+### func [NewLiteral](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L98>)
 
 ```go
 func NewLiteral(value interface{}, raw string) *Literal
@@ -743,7 +653,7 @@ func NewLiteral(value interface{}, raw string) *Literal
 
 
 <a name="Literal.Accept"></a>
-### func \(\*Literal\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L109>)
+### func \(\*Literal\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L102>)
 
 ```go
 func (l *Literal) Accept(ctx context.Context, v Visitor) (interface{}, error)
@@ -751,20 +661,60 @@ func (l *Literal) Accept(ctx context.Context, v Visitor) (interface{}, error)
 
 
 
-<a name="Literal.Raw"></a>
-### func \(\*Literal\) [Raw](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L117>)
+<a name="Map"></a>
+## type [Map](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L72-L74>)
+
+
 
 ```go
-func (l *Literal) Raw() string
+type Map struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="NewMap"></a>
+### func [NewMap](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L178>)
+
+```go
+func NewMap(entries []*MapEntry) *Map
 ```
 
 
 
-<a name="Literal.Value"></a>
-### func \(\*Literal\) [Value](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L113>)
+<a name="Map.Accept"></a>
+### func \(\*Map\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L182>)
 
 ```go
-func (l *Literal) Value() interface{}
+func (m *Map) Accept(ctx context.Context, v Visitor) (interface{}, error)
+```
+
+
+
+<a name="MapEntry"></a>
+## type [MapEntry](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L76-L79>)
+
+
+
+```go
+type MapEntry struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="NewMapEntry"></a>
+### func [NewMapEntry](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L186>)
+
+```go
+func NewMapEntry(key Expr, value Expr) *MapEntry
+```
+
+
+
+<a name="MapEntry.Accept"></a>
+### func \(\*MapEntry\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L190>)
+
+```go
+func (me *MapEntry) Accept(ctx context.Context, v Visitor) (interface{}, error)
 ```
 
 
@@ -781,7 +731,7 @@ type ParseError struct {
 ```
 
 <a name="ParseError.Accept"></a>
-### func \(\*ParseError\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L245>)
+### func \(\*ParseError\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L174>)
 
 ```go
 func (p *ParseError) Accept(ctx context.Context, v Visitor) (interface{}, error)
@@ -790,7 +740,7 @@ func (p *ParseError) Accept(ctx context.Context, v Visitor) (interface{}, error)
 
 
 <a name="ParseError.Error"></a>
-### func \(\*ParseError\) [Error](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L241>)
+### func \(\*ParseError\) [Error](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L170>)
 
 ```go
 func (pe *ParseError) Error() string
@@ -839,7 +789,7 @@ type Template struct {
 ```
 
 <a name="NewTemplate"></a>
-### func [NewTemplate](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L137>)
+### func [NewTemplate](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L114>)
 
 ```go
 func NewTemplate(expressions []Expr) *Template
@@ -848,19 +798,10 @@ func NewTemplate(expressions []Expr) *Template
 
 
 <a name="Template.Accept"></a>
-### func \(\*Template\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L141>)
+### func \(\*Template\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L118>)
 
 ```go
 func (t *Template) Accept(ctx context.Context, v Visitor) (interface{}, error)
-```
-
-
-
-<a name="Template.Expressions"></a>
-### func \(\*Template\) [Expressions](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L145>)
-
-```go
-func (t *Template) Expressions() []Expr
 ```
 
 
@@ -877,7 +818,7 @@ type Ternary struct {
 ```
 
 <a name="NewTernary"></a>
-### func [NewTernary](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L149>)
+### func [NewTernary](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L122>)
 
 ```go
 func NewTernary(condition Expr, trueExpr Expr, falseExpr Expr) *Ternary
@@ -886,37 +827,10 @@ func NewTernary(condition Expr, trueExpr Expr, falseExpr Expr) *Ternary
 
 
 <a name="Ternary.Accept"></a>
-### func \(\*Ternary\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L153>)
+### func \(\*Ternary\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L126>)
 
 ```go
 func (t *Ternary) Accept(ctx context.Context, v Visitor) (interface{}, error)
-```
-
-
-
-<a name="Ternary.Condition"></a>
-### func \(\*Ternary\) [Condition](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L157>)
-
-```go
-func (t *Ternary) Condition() Expr
-```
-
-
-
-<a name="Ternary.FalseExpr"></a>
-### func \(\*Ternary\) [FalseExpr](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L165>)
-
-```go
-func (t *Ternary) FalseExpr() Expr
-```
-
-
-
-<a name="Ternary.TrueExpr"></a>
-### func \(\*Ternary\) [TrueExpr](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L161>)
-
-```go
-func (t *Ternary) TrueExpr() Expr
 ```
 
 
@@ -932,47 +846,11 @@ type Token struct {
 }
 ```
 
-<a name="Token.Lexeme"></a>
-### func \(Token\) [Lexeme](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/lex.go#L90>)
-
-```go
-func (t Token) Lexeme() string
-```
-
-
-
-<a name="Token.Line"></a>
-### func \(Token\) [Line](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/lex.go#L102>)
-
-```go
-func (t Token) Line() int
-```
-
-
-
-<a name="Token.Start"></a>
-### func \(Token\) [Start](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/lex.go#L98>)
-
-```go
-func (t Token) Start() int
-```
-
-
-
 <a name="Token.String"></a>
-### func \(Token\) [String](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/lex.go#L106>)
+### func \(Token\) [String](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/lex.go#L91>)
 
 ```go
 func (t Token) String() string
-```
-
-
-
-<a name="Token.Type"></a>
-### func \(Token\) [Type](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/lex.go#L94>)
-
-```go
-func (t Token) Type() TokenType
 ```
 
 
@@ -1035,7 +913,7 @@ const (
 ```
 
 <a name="TokenType.String"></a>
-### func \(TokenType\) [String](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/lex.go#L110>)
+### func \(TokenType\) [String](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/lex.go#L95>)
 
 ```go
 func (t TokenType) String() string
@@ -1055,7 +933,7 @@ type Unary struct {
 ```
 
 <a name="NewUnary"></a>
-### func [NewUnary](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L121>)
+### func [NewUnary](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L106>)
 
 ```go
 func NewUnary(operator Token, right Expr) *Unary
@@ -1064,28 +942,10 @@ func NewUnary(operator Token, right Expr) *Unary
 
 
 <a name="Unary.Accept"></a>
-### func \(\*Unary\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L125>)
+### func \(\*Unary\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L110>)
 
 ```go
 func (u *Unary) Accept(ctx context.Context, v Visitor) (interface{}, error)
-```
-
-
-
-<a name="Unary.Operator"></a>
-### func \(\*Unary\) [Operator](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L129>)
-
-```go
-func (u *Unary) Operator() Token
-```
-
-
-
-<a name="Unary.Right"></a>
-### func \(\*Unary\) [Right](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L133>)
-
-```go
-func (u *Unary) Right() Expr
 ```
 
 
@@ -1102,7 +962,7 @@ type Variable struct {
 ```
 
 <a name="NewVariable"></a>
-### func [NewVariable](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L229>)
+### func [NewVariable](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L162>)
 
 ```go
 func NewVariable(name Token) *Variable
@@ -1111,7 +971,7 @@ func NewVariable(name Token) *Variable
 
 
 <a name="Variable.Accept"></a>
-### func \(\*Variable\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L233>)
+### func \(\*Variable\) [Accept](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L166>)
 
 ```go
 func (v *Variable) Accept(ctx context.Context, vis Visitor) (interface{}, error)
@@ -1119,17 +979,8 @@ func (v *Variable) Accept(ctx context.Context, vis Visitor) (interface{}, error)
 
 
 
-<a name="Variable.Name"></a>
-### func \(\*Variable\) [Name](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/nodes.go#L237>)
-
-```go
-func (v *Variable) Name() Token
-```
-
-
-
 <a name="Visitor"></a>
-## type [Visitor](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/types.go#L6-L21>)
+## type [Visitor](<https://github.com/nonsocode/xpress/blob/main/pkg/parser/types.go#L8-L25>)
 
 
 

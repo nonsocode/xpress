@@ -50,9 +50,9 @@ func main() {
 	e := parser.NewInterpreter()
 	e.SetMembers(map[string]interface{}{
 		"name": "John",
-	  "concat": func(a, b string) string {
+		"concat": func(a, b string) string {
 			return a + b
-	  },
+		},
 	})
 
 	// create an AST
