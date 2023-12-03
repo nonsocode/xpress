@@ -101,6 +101,7 @@ var cases = []SuccessCases{
 	{template: "@{{ someFunc()('host') }}", expect: "a function with host"},
 	{template: "@{{ someObject.key }}", expect: "value"},
 	{template: `@{{ "somestring".length }}`, expect: 10},
+	{template: `@{{ "somestring".length * 2 }}`, expect: float64(20)},
 	{template: "@{{ someObject['key'] }}", expect: "value"},
 	{template: "@{{ someObject.nested.key1 }}", expect: "value2"},
 	{template: "@{{ someObject.nested.struct.Key }}", expect: "StructValue"},

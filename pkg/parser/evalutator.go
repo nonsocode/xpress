@@ -114,10 +114,11 @@ func (e *Evaluator) add(left, right interface{}) (interface{}, error) {
 		if r, ok := right.(string); ok {
 			return l + r, nil
 		}
-	case float64:
-		if r, ok := right.(float64); ok {
-			return l + r, nil
-		}
+	}
+	if areNumbers(left, right) {
+		leftNum, _ := toFloat64(left)
+		rightNum, _ := toFloat64(right)
+		return leftNum + rightNum, nil
 	}
 
 	return nil, fmt.Errorf("cannot add non-numbers or strings: %v + %v", left, right)
@@ -128,42 +129,41 @@ func (e *Evaluator) sub(left, right interface{}) (interface{}, error) {
 		return nil, fmt.Errorf("cannot subtract nil values: adding %v and %v", left, right)
 	}
 
-	leftNum, ok1 := left.(float64)
-	rightNum, ok2 := right.(float64)
-
-	if !ok1 || !ok2 {
-		return nil, fmt.Errorf("cannot subtract non-numbers or strings: %v - %v", left, right)
+	if areNumbers(left, right) {
+		leftNum, _ := toFloat64(left)
+		rightNum, _ := toFloat64(right)
+		return leftNum - rightNum, nil
 	}
-
-	return leftNum - rightNum, nil
+	return nil, fmt.Errorf("cannot subtract non-numbers or strings: %v - %v", left, right)
 }
 
 func (e *Evaluator) mul(left, right interface{}) (interface{}, error) {
-	if left, ok := left.(float64); ok {
-		if right, ok := right.(float64); ok {
-			return left * right, nil
-		}
+	if areNumbers(left, right) {
+		leftNum, _ := toFloat64(left)
+		rightNum, _ := toFloat64(right)
+		return leftNum * rightNum, nil
 	}
 	return nil, fmt.Errorf("cannot multiply non-numbers: %v * %v", left, right)
 }
 
 func (e *Evaluator) div(left, right interface{}) (interface{}, error) {
-	if left, ok := left.(float64); ok {
-		if right, ok := right.(float64); ok {
-			if right == 0 {
-				return nil, fmt.Errorf("cannot divide by zero: %v / %v", left, right)
-			}
-			return left / right, nil
+	if areNumbers(left, right) {
+		leftNum, _ := toFloat64(left)
+		rightNum, _ := toFloat64(right)
+		if rightNum == 0 {
+			return nil, fmt.Errorf("cannot divide by zero: %f / %f", leftNum, rightNum)
 		}
+		return leftNum / rightNum, nil
 	}
 	return nil, fmt.Errorf("cannot divide non-numbers: %v / %v", left, right)
 }
 func (e *Evaluator) greater(left, right interface{}) (interface{}, error) {
+	if areNumbers(left, right) {
+		leftNum, _ := toFloat64(left)
+		rightNum, _ := toFloat64(right)
+		return leftNum > rightNum, nil
+	}
 	switch l := left.(type) {
-	case float64:
-		if r, ok := right.(float64); ok {
-			return l > r, nil
-		}
 	case string:
 		if r, ok := right.(string); ok {
 			return l > r, nil
@@ -173,11 +173,12 @@ func (e *Evaluator) greater(left, right interface{}) (interface{}, error) {
 }
 
 func (e *Evaluator) greaterEqual(left, right interface{}) (interface{}, error) {
+	if areNumbers(left, right) {
+		leftNum, _ := toFloat64(left)
+		rightNum, _ := toFloat64(right)
+		return leftNum >= rightNum, nil
+	}
 	switch l := left.(type) {
-	case float64:
-		if r, ok := right.(float64); ok {
-			return l >= r, nil
-		}
 	case string:
 		if r, ok := right.(string); ok {
 			return l >= r, nil
@@ -187,11 +188,12 @@ func (e *Evaluator) greaterEqual(left, right interface{}) (interface{}, error) {
 }
 
 func (e *Evaluator) less(left, right interface{}) (interface{}, error) {
+	if areNumbers(left, right) {
+		leftNum, _ := toFloat64(left)
+		rightNum, _ := toFloat64(right)
+		return leftNum < rightNum, nil
+	}
 	switch l := left.(type) {
-	case float64:
-		if r, ok := right.(float64); ok {
-			return l < r, nil
-		}
 	case string:
 		if r, ok := right.(string); ok {
 			return l < r, nil
@@ -201,11 +203,12 @@ func (e *Evaluator) less(left, right interface{}) (interface{}, error) {
 }
 
 func (e *Evaluator) lessEqual(left, right interface{}) (interface{}, error) {
+	if areNumbers(left, right) {
+		leftNum, _ := toFloat64(left)
+		rightNum, _ := toFloat64(right)
+		return leftNum <= rightNum, nil
+	}
 	switch l := left.(type) {
-	case float64:
-		if r, ok := right.(float64); ok {
-			return l <= r, nil
-		}
 	case string:
 		if r, ok := right.(string); ok {
 			return l <= r, nil
@@ -558,6 +561,55 @@ func identifyCallee(expr *Call) string {
 		return callee.name.lexeme
 	}
 	return "unknown"
+}
+
+func toFloat64(value interface{}) (float64, error) {
+	switch v := value.(type) {
+	case int:
+		return float64(v), nil
+	case int8:
+		return float64(v), nil
+	case int16:
+		return float64(v), nil
+	case int32:
+		return float64(v), nil
+	case int64:
+		return float64(v), nil
+	case uint:
+		return float64(v), nil
+	case uint8:
+		return float64(v), nil
+	case uint16:
+		return float64(v), nil
+	case uint32:
+		return float64(v), nil
+	case uint64:
+		return float64(v), nil
+	case float32:
+		return float64(v), nil
+	case float64:
+		return v, nil
+	default:
+		return 0, fmt.Errorf("not a number")
+	}
+}
+
+func isNumber(value interface{}) bool {
+	switch value.(type) {
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+		return true
+	default:
+		return false
+	}
+}
+
+func areNumbers(values ...interface{}) bool {
+	for _, v := range values {
+		if !isNumber(v) {
+			return false
+		}
+	}
+	return true
 }
 
 func (i *Evaluator) visitArrayExpr(ctx context.Context, expr *Array) (interface{}, error) {
