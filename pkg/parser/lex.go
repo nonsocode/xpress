@@ -83,6 +83,7 @@ type (
 		lineStart int
 		current   int
 		line      int
+		nesting   int
 	}
 	stateFn func(*Lexer) stateFn
 )
@@ -241,18 +242,20 @@ func lexText(l *Lexer) stateFn {
 func lexLeftDelim(l *Lexer) stateFn {
 	l.current += len(leftDelim)
 	l.addToken(TEMPLATE_LEFT_BRACE)
+	l.nesting++
 	return lexInsideAction
 }
 
 func lexRightDelim(l *Lexer) stateFn {
 	l.current += len(rightDelim)
 	l.addToken(TEMPLATE_RIGHT_BRACE)
+	l.nesting--
 	return lexText
 }
 
 func lexInsideAction(l *Lexer) stateFn {
 	for {
-		if strings.HasPrefix(l.source[l.current:], rightDelim) {
+		if strings.HasPrefix(l.source[l.current:], rightDelim) && l.nesting == 1 {
 			return lexRightDelim
 		}
 		if l.isAtEnd() {
@@ -265,8 +268,10 @@ func lexInsideAction(l *Lexer) stateFn {
 			return lexSquote
 		case '(':
 			l.addToken(LEFT_PAREN)
+			l.nesting++
 		case ')':
 			l.addToken(RIGHT_PAREN)
+			l.nesting--
 		case ',':
 			l.addToken(COMMA)
 		case '.':
@@ -286,8 +291,10 @@ func lexInsideAction(l *Lexer) stateFn {
 			l.addToken(QMARK)
 		case '[':
 			l.addToken(LEFT_BRACKET)
+			l.nesting++
 		case ']':
 			l.addToken(RIGHT_BRACKET)
+			l.nesting--
 		case ':':
 			l.addToken(COLON)
 			// numbers
@@ -332,7 +339,12 @@ func lexInsideAction(l *Lexer) stateFn {
 			}
 		case ' ', '\t', '\r', '\n':
 			l.ignore()
-
+		case '{':
+			l.addToken(LEFT_BRACE)
+			l.nesting++
+		case '}':
+			l.addToken(RIGHT_BRACE)
+			l.nesting--
 		default:
 			if isAlphaNumeric(c) {
 				return lexIdent

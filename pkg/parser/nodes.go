@@ -68,6 +68,15 @@ type (
 		token   Token
 		message string
 	}
+
+	Map struct {
+		entries []*MapEntry
+	}
+
+	MapEntry struct {
+		key   Expr
+		value Expr
+	}
 )
 
 func NewBinary(left Expr, operator Token, right Expr) *Binary {
@@ -164,4 +173,20 @@ func (pe *ParseError) Error() string {
 
 func (p *ParseError) Accept(ctx context.Context, v Visitor) (interface{}, error) {
 	return v.visitParseErrorExpr(ctx, p)
+}
+
+func NewMap(entries []*MapEntry) *Map {
+	return &Map{entries: entries}
+}
+
+func (m *Map) Accept(ctx context.Context, v Visitor) (interface{}, error) {
+	return v.visitMapExpr(ctx, m)
+}
+
+func NewMapEntry(key Expr, value Expr) *MapEntry {
+	return &MapEntry{key: key, value: value}
+}
+
+func (me *MapEntry) Accept(ctx context.Context, v Visitor) (interface{}, error) {
+	return v.visitMapEntryExpr(ctx, me)
 }

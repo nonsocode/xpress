@@ -352,50 +352,12 @@ func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, e
 		return nil, nil // TODO: return error?
 	case reflect.Slice, reflect.Array, reflect.String:
 		if expr.name.lexeme == "length" {
-			return value.Len(), nil
+			return float64(value.Len()), nil
 		}
 		return nil, fmt.Errorf("property '%s' does not exist", expr.name.lexeme)
 	default:
 		return nil, fmt.Errorf("cannot get property '%s' of type %T", expr.name.lexeme, obj)
 	}
-}
-
-func getFieldFromStructOrPointer(value reflect.Value, name string) (interface{}, bool) {
-	switch value.Kind() {
-	case reflect.Ptr:
-		value = value.Elem()
-	case reflect.Struct:
-	default:
-		return nil, false
-	}
-	if field := value.FieldByName(name); field.IsValid() {
-		return field.Interface(), true
-	}
-	return nil, false
-}
-
-func getMethodFromStructOrPointer(value reflect.Value, name string) (interface{}, bool) {
-	if method := value.MethodByName(name); method.IsValid() {
-		return method.Interface(), true
-	}
-	if value.CanAddr() {
-		if method := value.Addr().MethodByName(name); method.IsValid() {
-			return method.Interface(), true
-		}
-	}
-	switch value.Kind() {
-	case reflect.Ptr:
-	case reflect.Struct:
-		v := reflect.New(value.Type())
-		v.Elem().Set(value)
-		value = v
-	default:
-		return nil, false
-	}
-	if method := value.MethodByName(name); method.IsValid() {
-		return method.Interface(), true
-	}
-	return nil, false
 }
 
 func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) (interface{}, error) {
@@ -552,7 +514,52 @@ func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) (interface{},
 	}
 	return out[0].Interface(), nil
 }
+func (i *Evaluator) visitArrayExpr(ctx context.Context, expr *Array) (interface{}, error) {
+	if ctx.Err() != nil {
+		return nil, EvaluationCancelledErrror
+	}
+	values := make([]interface{}, len(expr.values))
+	for index, v := range expr.values {
+		value, err := i.interpret(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		values[index] = value
+	}
+	return values, nil
+}
 
+func (i *Evaluator) visitMapExpr(ctx context.Context, expr *Map) (interface{}, error) {
+	if ctx.Err() != nil {
+		return nil, EvaluationCancelledErrror
+	}
+	m := make(map[string]interface{})
+	for _, e := range expr.entries {
+		entry, err := i.interpret(ctx, e)
+		if err != nil {
+			return nil, err
+		}
+		key := entry.([2]interface{})[0]
+		value := entry.([2]interface{})[1]
+		m[fmt.Sprintf("%v", key)] = value
+	}
+	return m, nil
+}
+
+func (i *Evaluator) visitMapEntryExpr(ctx context.Context, expr *MapEntry) (interface{}, error) {
+	if ctx.Err() != nil {
+		return nil, EvaluationCancelledErrror
+	}
+	key, err := i.interpret(ctx, expr.key)
+	if err != nil {
+		return nil, err
+	}
+	value, err := i.interpret(ctx, expr.value)
+	if err != nil {
+		return nil, err
+	}
+	return [2]interface{}{key, value}, nil
+}
 func identifyCallee(expr *Call) string {
 	switch callee := expr.callee.(type) {
 	case *Variable:
@@ -612,19 +619,42 @@ func areNumbers(values ...interface{}) bool {
 	return true
 }
 
-func (i *Evaluator) visitArrayExpr(ctx context.Context, expr *Array) (interface{}, error) {
-	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+func getFieldFromStructOrPointer(value reflect.Value, name string) (interface{}, bool) {
+	switch value.Kind() {
+	case reflect.Ptr:
+		value = value.Elem()
+	case reflect.Struct:
+	default:
+		return nil, false
 	}
-	values := make([]interface{}, len(expr.values))
-	for index, v := range expr.values {
-		value, err := i.interpret(ctx, v)
-		if err != nil {
-			return nil, err
+	if field := value.FieldByName(name); field.IsValid() {
+		return field.Interface(), true
+	}
+	return nil, false
+}
+
+func getMethodFromStructOrPointer(value reflect.Value, name string) (interface{}, bool) {
+	if method := value.MethodByName(name); method.IsValid() {
+		return method.Interface(), true
+	}
+	if value.CanAddr() {
+		if method := value.Addr().MethodByName(name); method.IsValid() {
+			return method.Interface(), true
 		}
-		values[index] = value
 	}
-	return values, nil
+	switch value.Kind() {
+	case reflect.Ptr:
+	case reflect.Struct:
+		v := reflect.New(value.Type())
+		v.Elem().Set(value)
+		value = v
+	default:
+		return nil, false
+	}
+	if method := value.MethodByName(name); method.IsValid() {
+		return method.Interface(), true
+	}
+	return nil, false
 }
 
 func (i *Evaluator) isTruthy(object interface{}) bool {

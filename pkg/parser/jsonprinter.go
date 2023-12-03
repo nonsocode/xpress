@@ -80,6 +80,17 @@ type (
 		Callee    interface{}   `json:"callee"`
 		Arguments []interface{} `json:"arguments"`
 	}
+
+	JMap struct {
+		JNode   `json:",inline"`
+		Entries []interface{} `json:"entries"`
+	}
+
+	JMapEntry struct {
+		JNode `json:",inline"`
+		Key   interface{} `json:"key"`
+		Value interface{} `json:"value"`
+	}
 )
 
 func NewJSONPrinter() *JSONPrinter {
@@ -97,6 +108,26 @@ func (jp *JSONPrinter) visitBinaryExpr(ctx context.Context, expr *Binary) (inter
 	}, nil
 }
 
+func (jp *JSONPrinter) visitMapExpr(ctx context.Context, expr *Map) (interface{}, error) {
+	entries := make([]interface{}, len(expr.entries))
+	for i, e := range expr.entries {
+		entries[i], _ = e.Accept(ctx, jp)
+	}
+	return &JMap{
+		JNode:   JNode{Type: "Map"},
+		Entries: entries,
+	}, nil
+}
+
+func (jp *JSONPrinter) visitMapEntryExpr(ctx context.Context, expr *MapEntry) (interface{}, error) {
+	key, _ := expr.key.Accept(ctx, jp)
+	value, _ := expr.value.Accept(ctx, jp)
+	return &JMapEntry{
+		JNode: JNode{Type: "MapEntry"},
+		Key:   key,
+		Value: value,
+	}, nil
+}
 func (jp *JSONPrinter) visitGroupingExpr(ctx context.Context, expr *Grouping) (interface{}, error) {
 	expression, _ := expr.expression.Accept(ctx, jp)
 	return &JGrouping{

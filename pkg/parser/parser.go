@@ -215,7 +215,7 @@ func (p *Parser) finishCall(expr Expr) Expr {
 }
 
 // Grammar:
-// primary  → "true" | "false" | "nil" | NUMBER | STRING | IDENTIFIER | LPAREN expression RPAREN | array ;
+// primary  → "true" | "false" | "nil" | NUMBER | STRING | IDENTIFIER | LPAREN expression RPAREN | array | map;
 func (p *Parser) primary() Expr {
 	if p.match(FALSE) {
 		return NewLiteral(false, "false")
@@ -251,6 +251,9 @@ func (p *Parser) primary() Expr {
 	if p.match(LEFT_BRACKET) {
 		return p.array()
 	}
+	if p.match(LEFT_BRACE) {
+		return p.mapExpr()
+	}
 
 	p.error(fmt.Sprintf("Expect expression. got %v", p.peek().lexeme), p.peek())
 	return nil
@@ -274,6 +277,62 @@ func (p *Parser) array() Expr {
 	}
 
 	return NewArray(values)
+}
+
+// Grammar:
+// map  → LBRACE ( mapEntry ( COMMA mapEntry )* )? RBRACE ;
+func (p *Parser) mapExpr() Expr {
+	entries := make([]*MapEntry, 0)
+	if !p.check(RIGHT_BRACE) {
+		entries = append(entries, p.mapEntry())
+		for p.match(COMMA) {
+			entries = append(entries, p.mapEntry())
+		}
+	}
+	if ok := p.consume(RIGHT_BRACE); !ok {
+		p.error(
+			fmt.Sprintf("Expect '}' after map expression. got %v", p.peek().lexeme),
+			p.peek(),
+		)
+	}
+
+	return NewMap(entries)
+}
+
+// Grammar:
+// mapEntry  → ( identifier | string | LBRACKET expression RBRACKET ) COLON expression ;
+func (p *Parser) mapEntry() *MapEntry {
+	var key Expr
+	if p.match(IDENTIFIER) {
+		key = NewLiteral(p.previous().lexeme, p.previous().lexeme)
+	}
+	if p.match(STRING) {
+		str := p.previous().lexeme
+		key = NewLiteral(str[1:len(str)-1], str)
+	}
+	if p.match(LEFT_BRACKET) {
+		key = p.expression()
+		if ok := p.consume(RIGHT_BRACKET); !ok {
+			p.error(
+				fmt.Sprintf("Expect ']' after index expression. got %v", p.peek().lexeme),
+				p.peek(),
+			)
+		}
+	}
+	if key == nil {
+		p.error(
+			fmt.Sprintf("Expect map key. got %v", p.peek().lexeme),
+			p.peek(),
+		)
+	}
+	if ok := p.consume(COLON); !ok {
+		p.error(
+			fmt.Sprintf("Expect ':' after map key. got %v", p.peek().lexeme),
+			p.peek(),
+		)
+	}
+	value := p.expression()
+	return NewMapEntry(key, value)
 }
 
 func (p *Parser) consume(tokenType TokenType) bool {

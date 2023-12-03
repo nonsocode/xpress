@@ -18,6 +18,8 @@ type (
 		visitVariableExpr(context.Context, *Variable) (interface{}, error)
 		visitCallExpr(context.Context, *Call) (interface{}, error)
 		visitArrayExpr(context.Context, *Array) (interface{}, error)
+		visitMapExpr(context.Context, *Map) (interface{}, error)
+		visitMapEntryExpr(context.Context, *MapEntry) (interface{}, error)
 
 		visitParseErrorExpr(context.Context, *ParseError) (interface{}, error)
 	}

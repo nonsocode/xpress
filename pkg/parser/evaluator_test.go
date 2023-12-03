@@ -100,7 +100,7 @@ var cases = []SuccessCases{
 	{template: "@{{ getDeepObject().deep.object.with.values }}", expect: []interface{}{3, 2, 1}},
 	{template: "@{{ someFunc()('host') }}", expect: "a function with host"},
 	{template: "@{{ someObject.key }}", expect: "value"},
-	{template: `@{{ "somestring".length }}`, expect: 10},
+	{template: `@{{ "somestring".length }}`, expect: float64(10)},
 	{template: `@{{ "somestring".length * 2 }}`, expect: float64(20)},
 	{template: "@{{ someObject['key'] }}", expect: "value"},
 	{template: "@{{ someObject.nested.key1 }}", expect: "value2"},
@@ -126,6 +126,31 @@ var cases = []SuccessCases{
 		3
 	][1] }}`, expect: float64(2)}, // multiline
 	{template: "@{{ [[0,0], [0,1], [1,2]] }}", expect: []interface{}{[]interface{}{float64(0), float64(0)}, []interface{}{float64(0), float64(1)}, []interface{}{float64(1), float64(2)}}},
+	{template: `@{{ 
+		{
+			a: concat("Hello ", "World"), 
+		  "nested": {
+				b: {c: {d: "this is d"}},
+				someArray: [1,2, "hello".length + 1],
+				"stringKey": 87,
+				[someObject.nested.key1]: "this is a value",
+				[getDeepObject().deep.object.with.values[0]]: "this is another value"
+		  }
+		} 
+  }}`, expect: map[string]interface{}{
+		"a": "Hello World",
+		"nested": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": map[string]interface{}{
+					"d": "this is d",
+				},
+			},
+			"someArray": []interface{}{float64(1), float64(2), float64(6)},
+			"stringKey": float64(87),
+			"value2":    "this is a value",
+			"3":         "this is another value",
+		},
+	}},
 }
 
 var errorCases = []ErrorCases{
@@ -138,7 +163,7 @@ var errorCases = []ErrorCases{
 	{template: "@{{ getDeepObject().deep.object.with.values[3] }}", msg: "index '3' is out of bounds"},
 	{template: "@{{ getDeepObject().deep.object.with.values[-1] }}", msg: "index '-1' is out of bounds"},
 	{template: "@{{ getDeepObject().nonexistent.key }}", msg: "cannot get property 'key' of nil"},
-	{template: "@{{ [1,2,3,4 }}", msg: "parse error: Error at position 13. Expect ']' after array expression. got }}"},
+	{template: "@{{ [1,2,3,4 }}", msg: "parse error: Error at position 13. Expect ']' after array expression. got }"},
 }
 
 func (d *Dummy) PointerReceiverMethod() string {
