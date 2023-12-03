@@ -125,6 +125,7 @@ var cases = []SuccessCases{
 		2,
 		3
 	][1] }}`, expect: float64(2)}, // multiline
+	{template: "@{{ [[0,0], [0,1], [1,2]] }}", expect: []interface{}{[]interface{}{float64(0), float64(0)}, []interface{}{float64(0), float64(1)}, []interface{}{float64(1), float64(2)}}},
 }
 
 var errorCases = []ErrorCases{
@@ -137,6 +138,7 @@ var errorCases = []ErrorCases{
 	{template: "@{{ getDeepObject().deep.object.with.values[3] }}", msg: "index '3' is out of bounds"},
 	{template: "@{{ getDeepObject().deep.object.with.values[-1] }}", msg: "index '-1' is out of bounds"},
 	{template: "@{{ getDeepObject().nonexistent.key }}", msg: "cannot get property 'key' of nil"},
+	{template: "@{{ [1,2,3,4 }}", msg: "parse error: Error at position 13. Expect ']' after array expression. got }}"},
 }
 
 func (d *Dummy) PointerReceiverMethod() string {
