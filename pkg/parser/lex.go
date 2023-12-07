@@ -55,6 +55,7 @@ var (
 		LESS_EQUAL:           "LESS_EQUAL",
 		TEMPLATE_LEFT_BRACE:  "TEMPLATE_LEFT_BRACE",
 		TEMPLATE_RIGHT_BRACE: "TEMPLATE_RIGHT_BRACE",
+		OPTIONALCHAIN:        "OPTIONALCHAIN",
 		AND:                  "AND",
 		OR:                   "OR",
 		IDENTIFIER:           "IDENTIFIER",
@@ -194,6 +195,7 @@ func (l *Lexer) atTerminator() bool {
 	switch r {
 	case eof,
 		'.',
+		'?',
 		',',
 		'|',
 		':',
@@ -288,7 +290,11 @@ func lexInsideAction(l *Lexer) stateFn {
 		case '%':
 			l.addToken(PERCENT)
 		case '?':
-			l.addToken(QMARK)
+			if l.accept(".") {
+				l.addToken(OPTIONALCHAIN)
+			} else {
+				l.addToken(QMARK)
+			}
 		case '[':
 			l.addToken(LEFT_BRACKET)
 			l.nesting++
@@ -305,13 +311,13 @@ func lexInsideAction(l *Lexer) stateFn {
 			if l.accept("|") {
 				l.addToken(OR)
 			} else {
-				return l.errorf("illegal character")
+				return l.errorf(`illegal character "%s"`, string(c))
 			}
 		case '&':
 			if l.accept("&") {
 				l.addToken(AND)
 			} else {
-				return l.errorf("illegal character")
+				return l.errorf(`illegal character "%s"`, string(c))
 			}
 		case '!':
 			if l.accept("=") {
@@ -349,7 +355,7 @@ func lexInsideAction(l *Lexer) stateFn {
 			if isAlphaNumeric(c) {
 				return lexIdent
 			}
-			return l.errorf("illegal character")
+			return l.errorf(`illegal character "%s"`, string(c))
 		}
 	}
 }

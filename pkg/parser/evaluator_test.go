@@ -31,6 +31,8 @@ type Dummy struct {
 var cases = []SuccessCases{
 	{template: "Just raw text", expect: "Just raw text"},
 	{template: "@{{ 123 * (45.67) }}", expect: float64(123 * 45.67)},
+	{template: "@{{ 1 + 2 * 3 }}", expect: float64(7)},
+	{template: "@{{ 2 * 3 + 1 }}", expect: float64(7)},
 	{template: "@{{-123 * (45.67) }} juxtaposed", expect: "-5617.41 juxtaposed"},
 	{template: "@{{-123 * (45.67) }} ", expect: "-5617.41 "}, // converts to string if the template braces don't begin and end the string
 	{template: `@{{ 3 * 3 }} with text in-between @{{ true ? "changed" : "not changed" }}`, expect: "9 with text in-between changed"},
@@ -174,6 +176,15 @@ func (d Dummy) StructReceiverMethod() string {
 	return "struct value"
 }
 
+func TestOptionalChaining(t *testing.T) {
+	// evaluator := NewInterpreter()
+	// evaluator.timeout = 5 * time.Hour
+	// ast := NewParser("@{{ some?.nested.thing().g }}").Parse()
+	// res, err := (&JSONPrinter{}).Print(ast)
+	// assert.Nil(t, err)
+	// assert.Equal(t, nil, res)
+
+}
 func TestExampleParser(t *testing.T) {
 	evaluator := NewInterpreter()
 	evaluator.SetMembers(createTestTemplateFunctions())

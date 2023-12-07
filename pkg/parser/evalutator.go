@@ -330,6 +330,9 @@ func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, e
 		return nil, err
 	}
 	if obj == nil {
+		if expr.getType.tokenType == OPTIONALCHAIN {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("cannot get property '%s' of nil", expr.name.lexeme)
 	}
 

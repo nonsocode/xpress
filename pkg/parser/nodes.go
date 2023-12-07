@@ -42,8 +42,9 @@ type (
 	}
 
 	Get struct {
-		object Expr
-		name   Token
+		object  Expr
+		getType Token
+		name    Token
 	}
 
 	Call struct {
@@ -127,8 +128,8 @@ func (t *Ternary) Accept(ctx context.Context, v Visitor) (interface{}, error) {
 	return v.visitTernaryExpr(ctx, t)
 }
 
-func NewGet(object Expr, name Token) *Get {
-	return &Get{object: object, name: name}
+func NewGet(object Expr, getType, name Token) *Get {
+	return &Get{object: object, getType: getType, name: name}
 }
 
 func (g *Get) Accept(ctx context.Context, v Visitor) (interface{}, error) {

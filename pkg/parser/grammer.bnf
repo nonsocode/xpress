@@ -10,7 +10,7 @@ term              → factor ( ( MINUS | PLUS ) factor )* ;
 factor            → unary ( ( SLASH | STAR ) unary )* ;
 unary             → ( BANG | MINUS ) unary | call ;
 call              → primary ( LPAREN arguments? RPAREN | get )* ;
-get               → (DOT identifier | LBRACKET expression RBRACKET) ;
+get               → ((QMARK)? DOT identifier | LBRACKET expression RBRACKET) ;
 primary           → number | string | TRUE | FALSE | NIL | identifier | LPAREN expression RPAREN | array | map ;
 map               → LBRACE ( mapEntry ( COMMA mapEntry )* )? RBRACE ;
 mapEntry          → ( identifier | string | LBRACKET expression RBRACKET ) COLON expression ;

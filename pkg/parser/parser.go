@@ -175,13 +175,10 @@ func (p *Parser) call() Expr {
 	for {
 		if p.match(LEFT_PAREN) {
 			expr = p.finishCall(expr)
-		} else if p.match(DOT) {
-			if ok := p.consume(IDENTIFIER); !ok {
-				p.error(fmt.Sprintf("Expect property name after '.'. got %v", p.peek().lexeme), p.peek())
-			}
-			expr = NewGet(expr, p.previous())
+		} else if p.matchAny(DOT, OPTIONALCHAIN) {
+			expr = p.get(expr, p.previous())
 		} else if p.match(LEFT_BRACKET) {
-			expr = p.finishIndex(expr)
+			expr = p.index(expr)
 		} else {
 			break
 		}
@@ -189,7 +186,18 @@ func (p *Parser) call() Expr {
 	return expr
 }
 
-func (p *Parser) finishIndex(expr Expr) Expr {
+// Grammar:
+// get → (QMARK)? DOT IDENTIFIER ;
+func (p *Parser) get(expr Expr, token Token) Expr {
+	if ok := p.consume(IDENTIFIER); !ok {
+		p.error(fmt.Sprintf("Expect property name after '%s'. got %v", p.previous().lexeme, p.peek().lexeme), p.peek())
+	}
+	return NewGet(expr, token, p.previous())
+}
+
+// Grammar:
+// index → LBRACKET expression RBRACKET ;
+func (p *Parser) index(expr Expr) Expr {
 	index := p.expression()
 	if ok := p.consume(RIGHT_BRACKET); !ok {
 		p.error(
@@ -351,6 +359,15 @@ func (p *Parser) match(types ...TokenType) bool {
 	for _, t := range types {
 		if p.check(t) {
 			p.advance()
+			return true
+		}
+	}
+	return false
+}
+
+func (p *Parser) matchAny(types ...TokenType) bool {
+	for _, t := range types {
+		if p.match(t) {
 			return true
 		}
 	}
