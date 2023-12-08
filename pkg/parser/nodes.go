@@ -42,9 +42,12 @@ type (
 	}
 
 	Get struct {
-		object  Expr
-		getType Token
-		name    Token
+		object Expr
+		name   Token
+	}
+
+	Optional struct {
+		left Expr
 	}
 
 	Call struct {
@@ -128,12 +131,20 @@ func (t *Ternary) Accept(ctx context.Context, v Visitor) EvaluationResult {
 	return v.visitTernaryExpr(ctx, t)
 }
 
-func NewGet(object Expr, getType, name Token) *Get {
-	return &Get{object: object, getType: getType, name: name}
+func NewGet(object Expr, name Token) *Get {
+	return &Get{object: object, name: name}
 }
 
 func (g *Get) Accept(ctx context.Context, v Visitor) EvaluationResult {
 	return v.visitGetExpr(ctx, g)
+}
+
+func NewOptional(left Expr) *Optional {
+	return &Optional{left: left}
+}
+
+func (o *Optional) Accept(ctx context.Context, v Visitor) EvaluationResult {
+	return v.visitOptionalExpr(ctx, o)
 }
 
 func NewCall(callee Expr, arguments []Expr) *Call {

@@ -169,14 +169,25 @@ func (p *Parser) unary() Expr {
 }
 
 // Grammar:
-// call → primary ( LPAREN arguments? RPAREN )* ( get )* ;
+// call  → primary ( ((QMARK DOT)? (LPAREN arguments? RPAREN)) | ((QMARK DOT) identifier) | ((QMARK DOT) index) | get | index)* ;
 func (p *Parser) call() Expr {
 	expr := p.primary()
 	for {
 		if p.match(LEFT_PAREN) {
 			expr = p.finishCall(expr)
-		} else if p.matchAny(DOT, OPTIONALCHAIN) {
-			expr = p.get(expr, p.previous())
+		} else if p.match(DOT) {
+			expr = p.get(expr)
+		} else if p.match(OPTIONALCHAIN) {
+			expr = NewOptional(expr)
+			if p.match(LEFT_PAREN) {
+				expr = p.finishCall(expr)
+			} else if p.check(IDENTIFIER) {
+				expr = p.get(expr)
+			} else if p.match(LEFT_BRACKET) {
+				expr = p.index(expr)
+			} else {
+				break
+			}
 		} else if p.match(LEFT_BRACKET) {
 			expr = p.index(expr)
 		} else {
@@ -187,12 +198,18 @@ func (p *Parser) call() Expr {
 }
 
 // Grammar:
-// get → (QMARK)? DOT IDENTIFIER ;
-func (p *Parser) get(expr Expr, token Token) Expr {
+// get →  IDENTIFIER ;
+func (p *Parser) get(expr Expr) Expr {
 	if ok := p.consume(IDENTIFIER); !ok {
 		p.error(fmt.Sprintf("Expect property name after '%s'. got %v", p.previous().lexeme, p.peek().lexeme), p.peek())
 	}
-	return NewGet(expr, token, p.previous())
+	return NewGet(expr, p.previous())
+}
+
+// Grammar:
+// optional →  OPTIONALCHAIN ;
+func (p *Parser) optional(expr Expr) Expr {
+	return NewOptional(expr)
 }
 
 // Grammar:
@@ -359,15 +376,6 @@ func (p *Parser) match(types ...TokenType) bool {
 	for _, t := range types {
 		if p.check(t) {
 			p.advance()
-			return true
-		}
-	}
-	return false
-}
-
-func (p *Parser) matchAny(types ...TokenType) bool {
-	for _, t := range types {
-		if p.match(t) {
 			return true
 		}
 	}

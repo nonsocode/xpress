@@ -14,6 +14,7 @@ type (
 		visitTemplateExpr(context.Context, *Template) EvaluationResult
 		visitTernaryExpr(context.Context, *Ternary) EvaluationResult
 		visitGetExpr(context.Context, *Get) EvaluationResult
+		visitOptionalExpr(context.Context, *Optional) EvaluationResult
 		visitIndexExpr(context.Context, *Index) EvaluationResult
 		visitVariableExpr(context.Context, *Variable) EvaluationResult
 		visitCallExpr(context.Context, *Call) EvaluationResult

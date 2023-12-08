@@ -9,11 +9,12 @@ comparison        → term ( ( GREATER | GREATER_EQUAL | LESS | LESS_EQUAL ) ter
 term              → factor ( ( MINUS | PLUS ) factor )* ;
 factor            → unary ( ( SLASH | STAR ) unary )* ;
 unary             → ( BANG | MINUS ) unary | call ;
-call              → primary ( LPAREN arguments? RPAREN | get )* ;
-get               → ((QMARK)? DOT identifier | LBRACKET expression RBRACKET) ;
+call              → primary ( ((QMARK DOT)? (LPAREN arguments? RPAREN)) | ((QMARK DOT) identifier) | ((QMARK DOT) index) | get | index)* ;
+get               → (DOT identifier ) ;
+index             → LBRACKET expression RBRACKET ;
 primary           → number | string | TRUE | FALSE | NIL | identifier | LPAREN expression RPAREN | array | map ;
 map               → LBRACE ( mapEntry ( COMMA mapEntry )* )? RBRACE ;
-mapEntry          → ( identifier | string | LBRACKET expression RBRACKET ) COLON expression ;
+mapEntry          → ( identifier | string | index ) COLON expression ;
 array             → LBRACKET ( expression ( COMMA expression )* )? RBRACKET ;
 arguments         → expression ( COMMA expression )* ;
 identifier        → LETTER ( LETTER | DIGIT )* ;

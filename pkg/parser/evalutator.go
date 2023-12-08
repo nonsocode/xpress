@@ -322,6 +322,23 @@ func (i *Evaluator) visitVariableExpr(ctx context.Context, expr *Variable) Evalu
 	return &result{}
 }
 
+func (i *Evaluator) visitOptionalExpr(ctx context.Context, expr *Optional) EvaluationResult {
+	if ctx.Err() != nil {
+		return &result{err: EvaluationCancelledErrror}
+	}
+	res := i.interpret(ctx, expr.left)
+	if res.Error() != nil {
+		return res
+	}
+	if res, ok := res.(*optionalEvaluationResult); ok && res.IsAbsent() {
+		return res
+	}
+	if res.Get() == nil {
+		return &optionalEvaluationResult{absent: true}
+	}
+	return res
+}
+
 func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) EvaluationResult {
 	if ctx.Err() != nil {
 		return &result{err: EvaluationCancelledErrror}
@@ -335,9 +352,6 @@ func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) EvaluationResul
 	}
 	obj := res.Get()
 	if obj == nil {
-		if expr.getType.tokenType == OPTIONALCHAIN {
-			return &optionalEvaluationResult{absent: true}
-		}
 		return &result{err: fmt.Errorf("cannot get property '%s' of nil", expr.name.lexeme)}
 	}
 

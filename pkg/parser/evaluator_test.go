@@ -123,6 +123,8 @@ var cases = []SuccessCases{
 	{template: "@{{ getDeepObject()['nonexistent'] }}", expect: nil},
 	{template: "@{{ someObject.nonexistent?.deply['nonexistent'].path }}", expect: nil},
 	{template: "@{{ getDeepObject().nonexistent?.deply.nonexistent.path }}", expect: nil},
+	{template: "@{{ getDeepObject().nonexistentFunc?.() }}", expect: nil},
+	{template: "@{{ getDeepObject?.()?.deep?.object?.with?.values?.[0] }}", expect: int(3)},
 	{template: "@{{ [1,2,3][1] }}", expect: float64(2)},
 	{template: `@{{ [
 		1,
