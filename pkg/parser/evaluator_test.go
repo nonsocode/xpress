@@ -256,14 +256,14 @@ func BenchmarkEvaluator(b *testing.B) {
 		"this" != "that" ||
 		date("02 Jan 06 15:04 MST").Before(date("03 Jan 06 15:04 MST")) && 
 		object?.["some key"] <= array[0] &&
-		modifierTest + 1000 / 2 > (80 * 100 * 2) 
+		prop + 1000 / 2 > (80 * 100 * 2) 
 	}}`
 	evaluator := NewInterpreter()
 	evaluator.AddMember("object", map[string]interface{}{
 		"some key": 1,
 	})
 	evaluator.AddMember("array", []interface{}{1, 2, 3})
-	evaluator.AddMember("modifierTest", 100)
+	evaluator.AddMember("prop", 100)
 	evaluator.AddMember("date", func(s string) (time.Time, error) {
 		return time.Parse(time.RFC822, s)
 	})
