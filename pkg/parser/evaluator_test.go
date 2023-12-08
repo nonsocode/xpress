@@ -236,7 +236,11 @@ func TestExampleParserErrors(t *testing.T) {
 func BenchmarkComplexParser(b *testing.B) {
 	// create a parser with complex expression
 	for n := 0; n < b.N; n++ {
-		NewParser("@{{ concat('string', ' ', concat('with another', concat(' ', 'recursive'))) }} and some advanced math @{{ math.pow(2, 3) + 56 / 4 * 6 }} and some object access @{{ someObject.nested.key1 }} with other function calls @{{ getDeepObject().deep.object.with.values }}").Parse()
+		NewParser(`2 > 1 &&
+		"something" != "nothing" ||
+		date("2014-01-20") < date("Wed Jul  8 23:07:35 MDT 2015") && 
+		object["Variable name with spaces"] <= array[0] &&
+		modifierTest + 1000 / 2 > (80 * 100 % 2)`).Parse()
 	}
 }
 
@@ -247,9 +251,22 @@ func BenchmarkSimpleParser(b *testing.B) {
 	}
 }
 func BenchmarkEvaluator(b *testing.B) {
-	template := `@{{ concat('string', ' ', concat('with another', concat(' ', 'recursive'))) }} and some advanced math @{{ math.pow(2, 3) + 56 / 4 * 6 }} and some object access @{{ someObject.nested.key1 }} with other function calls @{{getDeepObject().deep.object.with.values}}`
+	template := `@{{ 
+		2 > 1 &&
+		"this" != "that" ||
+		date("02 Jan 06 15:04 MST").Before(date("03 Jan 06 15:04 MST")) && 
+		object?.["some key"] <= array[0] &&
+		modifierTest + 1000 / 2 > (80 * 100 * 2) 
+	}}`
 	evaluator := NewInterpreter()
-	evaluator.SetMembers(createTestTemplateFunctions())
+	evaluator.AddMember("object", map[string]interface{}{
+		"some key": 1,
+	})
+	evaluator.AddMember("array", []interface{}{1, 2, 3})
+	evaluator.AddMember("modifierTest", 100)
+	evaluator.AddMember("date", func(s string) (time.Time, error) {
+		return time.Parse(time.RFC822, s)
+	})
 	evaluator.SetTimeout(5 * time.Millisecond)
 	// create a parser with complex expression
 	ast := NewParser(template).Parse()
