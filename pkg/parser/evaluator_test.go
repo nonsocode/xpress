@@ -121,6 +121,8 @@ var cases = []SuccessCases{
 	{template: "@{{ getDeepObject().deep.object.with.values[0] }}", expect: int(3)},
 	{template: "@{{ getDeepObject().nonexistent }}", expect: nil},
 	{template: "@{{ getDeepObject()['nonexistent'] }}", expect: nil},
+	{template: "@{{ someObject.nonexistent?.deply['nonexistent'].path }}", expect: nil},
+	{template: "@{{ getDeepObject().nonexistent?.deply.nonexistent.path }}", expect: nil},
 	{template: "@{{ [1,2,3][1] }}", expect: float64(2)},
 	{template: `@{{ [
 		1,
@@ -176,14 +178,6 @@ func (d Dummy) StructReceiverMethod() string {
 	return "struct value"
 }
 
-func TestOptionalChaining(t *testing.T) {
-	// evaluator := NewInterpreter()
-	// evaluator.timeout = 5 * time.Hour
-	// ast := NewParser("@{{ a?.b.c[one.two.three] }}").Parse()
-	// res, err := (&JSONPrinter{}).Print(ast)
-	// assert.Nil(t, err)
-	// assert.Equal(t, nil, res)
-}
 func TestExampleParser(t *testing.T) {
 	evaluator := NewInterpreter()
 	evaluator.SetMembers(createTestTemplateFunctions())

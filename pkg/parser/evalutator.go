@@ -326,17 +326,17 @@ func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) EvaluationResul
 	if ctx.Err() != nil {
 		return &result{err: EvaluationCancelledErrror}
 	}
-	if expr.object == nil {
-		return &result{err: fmt.Errorf("object is nil")}
-	}
 	res := i.interpret(ctx, expr.object)
 	if res.Error() != nil {
+		return res
+	}
+	if res, ok := res.(*optionalEvaluationResult); ok && res.IsAbsent() {
 		return res
 	}
 	obj := res.Get()
 	if obj == nil {
 		if expr.getType.tokenType == OPTIONALCHAIN {
-			return &result{}
+			return &optionalEvaluationResult{absent: true}
 		}
 		return &result{err: fmt.Errorf("cannot get property '%s' of nil", expr.name.lexeme)}
 	}
@@ -374,6 +374,9 @@ func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) EvaluationR
 	}
 	res := i.interpret(ctx, expr.object)
 	if res.Error() != nil {
+		return res
+	}
+	if res, ok := res.(*optionalEvaluationResult); ok && res.IsAbsent() {
 		return res
 	}
 	obj := res.Get()
@@ -428,16 +431,12 @@ func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) EvaluationRes
 	if ctx.Err() != nil {
 		return &result{err: EvaluationCancelledErrror}
 	}
-	args := make([]interface{}, 0)
-	for _, a := range expr.arguments {
-		res := e.interpret(ctx, a)
-		if res.Error() != nil {
-			return res
-		}
-		args = append(args, res.Get())
-	}
+
 	calleeRes := e.interpret(ctx, expr.callee)
 	if calleeRes.Error() != nil {
+		return calleeRes
+	}
+	if calleeRes, ok := calleeRes.(*optionalEvaluationResult); ok && calleeRes.IsAbsent() {
 		return calleeRes
 	}
 	callee := calleeRes.Get()
@@ -462,6 +461,15 @@ func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) EvaluationRes
 				identifyCallee(expr),
 			)}
 		}
+	}
+
+	args := make([]interface{}, 0)
+	for _, a := range expr.arguments {
+		res := e.interpret(ctx, a)
+		if res.Error() != nil {
+			return res
+		}
+		args = append(args, res.Get())
 	}
 
 	isVariadic := fn.Type().IsVariadic()
