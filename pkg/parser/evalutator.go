@@ -63,18 +63,21 @@ func (i *Evaluator) SetMembers(members map[string]interface{}) error {
 	return nil
 }
 
-func (i *Evaluator) visitBinaryExpr(ctx context.Context, expr *Binary) (interface{}, error) {
+func (i *Evaluator) visitBinaryExpr(ctx context.Context, expr *Binary) EvaluationResult {
 	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+		return &result{err: EvaluationCancelledErrror}
 	}
-	left, err := i.interpret(ctx, expr.left)
-	if err != nil {
-		return nil, err
+
+	res := i.interpret(ctx, expr.left)
+	if res.Error() != nil {
+		return res
 	}
-	right, err := i.interpret(ctx, expr.right)
-	if err != nil {
-		return nil, err
+	left := res.Get()
+	res = i.interpret(ctx, expr.right)
+	if res.Error() != nil {
+		return res
 	}
+	right := res.Get()
 	switch expr.operator.tokenType {
 	case MINUS:
 		return i.sub(left, right)
@@ -93,128 +96,128 @@ func (i *Evaluator) visitBinaryExpr(ctx context.Context, expr *Binary) (interfac
 	case LESS_EQUAL:
 		return i.lessEqual(left, right)
 	case BANG_EQUAL:
-		return !i.isEqual(left, right), nil
+		return &result{value: !i.isEqual(left, right)}
 	case EQUAL_EQUAL:
-		return i.isEqual(left, right), nil
+		return &result{value: i.isEqual(left, right)}
 	case AND:
-		return i.isTruthy(left) && i.isTruthy(right), nil
+		return &result{value: i.isTruthy(left) && i.isTruthy(right)}
 	case OR:
-		return i.isTruthy(left) || i.isTruthy(right), nil
+		return &result{value: i.isTruthy(left) || i.isTruthy(right)}
 	}
-	return nil, nil
+	return &result{}
 }
 
-func (e *Evaluator) add(left, right interface{}) (interface{}, error) {
+func (e *Evaluator) add(left, right interface{}) EvaluationResult {
 	if left == nil || right == nil {
-		return nil, fmt.Errorf("cannot add nil values: adding %v and %v", left, right)
+		return &result{err: fmt.Errorf("cannot add nil values: adding %v and %v", left, right)}
 	}
 
 	switch l := left.(type) {
 	case string:
 		if r, ok := right.(string); ok {
-			return l + r, nil
+			return &result{value: l + r}
 		}
 	}
 	if areNumbers(left, right) {
 		leftNum, _ := toFloat64(left)
 		rightNum, _ := toFloat64(right)
-		return leftNum + rightNum, nil
+		return &result{value: leftNum + rightNum}
 	}
 
-	return nil, fmt.Errorf("cannot add non-numbers or strings: %v + %v", left, right)
+	return &result{err: fmt.Errorf("cannot add non-numbers or strings: %v + %v", left, right)}
 }
 
-func (e *Evaluator) sub(left, right interface{}) (interface{}, error) {
+func (e *Evaluator) sub(left, right interface{}) EvaluationResult {
 	if left == nil || right == nil {
-		return nil, fmt.Errorf("cannot subtract nil values: adding %v and %v", left, right)
+		return &result{err: fmt.Errorf("cannot subtract nil values: adding %v and %v", left, right)}
 	}
 
 	if areNumbers(left, right) {
 		leftNum, _ := toFloat64(left)
 		rightNum, _ := toFloat64(right)
-		return leftNum - rightNum, nil
+		return &result{value: leftNum - rightNum}
 	}
-	return nil, fmt.Errorf("cannot subtract non-numbers or strings: %v - %v", left, right)
+	return &result{err: fmt.Errorf("cannot subtract non-numbers or strings: %v - %v", left, right)}
 }
 
-func (e *Evaluator) mul(left, right interface{}) (interface{}, error) {
+func (e *Evaluator) mul(left, right interface{}) EvaluationResult {
 	if areNumbers(left, right) {
 		leftNum, _ := toFloat64(left)
 		rightNum, _ := toFloat64(right)
-		return leftNum * rightNum, nil
+		return &result{value: leftNum * rightNum}
 	}
-	return nil, fmt.Errorf("cannot multiply non-numbers: %v * %v", left, right)
+	return &result{err: fmt.Errorf("cannot multiply non-numbers: %v * %v", left, right)}
 }
 
-func (e *Evaluator) div(left, right interface{}) (interface{}, error) {
+func (e *Evaluator) div(left, right interface{}) EvaluationResult {
 	if areNumbers(left, right) {
 		leftNum, _ := toFloat64(left)
 		rightNum, _ := toFloat64(right)
 		if rightNum == 0 {
-			return nil, fmt.Errorf("cannot divide by zero: %f / %f", leftNum, rightNum)
+			return &result{err: fmt.Errorf("cannot divide by zero: %f / %f", leftNum, rightNum)}
 		}
-		return leftNum / rightNum, nil
+		return &result{value: leftNum / rightNum}
 	}
-	return nil, fmt.Errorf("cannot divide non-numbers: %v / %v", left, right)
+	return &result{err: fmt.Errorf("cannot divide non-numbers: %v / %v", left, right)}
 }
-func (e *Evaluator) greater(left, right interface{}) (interface{}, error) {
+func (e *Evaluator) greater(left, right interface{}) EvaluationResult {
 	if areNumbers(left, right) {
 		leftNum, _ := toFloat64(left)
 		rightNum, _ := toFloat64(right)
-		return leftNum > rightNum, nil
+		return &result{value: leftNum > rightNum}
 	}
 	switch l := left.(type) {
 	case string:
 		if r, ok := right.(string); ok {
-			return l > r, nil
+			return &result{value: l > r}
 		}
 	}
-	return nil, fmt.Errorf("cannot compare %T with %T", left, right)
-}
-
-func (e *Evaluator) greaterEqual(left, right interface{}) (interface{}, error) {
-	if areNumbers(left, right) {
-		leftNum, _ := toFloat64(left)
-		rightNum, _ := toFloat64(right)
-		return leftNum >= rightNum, nil
-	}
-	switch l := left.(type) {
-	case string:
-		if r, ok := right.(string); ok {
-			return l >= r, nil
-		}
-	}
-	return nil, fmt.Errorf("cannot compare %T with %T", left, right)
+	return &result{err: fmt.Errorf("cannot compare %T with %T", left, right)}
 }
 
-func (e *Evaluator) less(left, right interface{}) (interface{}, error) {
+func (e *Evaluator) greaterEqual(left, right interface{}) EvaluationResult {
 	if areNumbers(left, right) {
 		leftNum, _ := toFloat64(left)
 		rightNum, _ := toFloat64(right)
-		return leftNum < rightNum, nil
+		return &result{value: leftNum >= rightNum}
 	}
 	switch l := left.(type) {
 	case string:
 		if r, ok := right.(string); ok {
-			return l < r, nil
+			return &result{value: l >= r}
 		}
 	}
-	return nil, fmt.Errorf("cannot compare %T with %T", left, right)
+	return &result{err: fmt.Errorf("cannot compare %T with %T", left, right)}
 }
 
-func (e *Evaluator) lessEqual(left, right interface{}) (interface{}, error) {
+func (e *Evaluator) less(left, right interface{}) EvaluationResult {
 	if areNumbers(left, right) {
 		leftNum, _ := toFloat64(left)
 		rightNum, _ := toFloat64(right)
-		return leftNum <= rightNum, nil
+		return &result{value: leftNum < rightNum}
 	}
 	switch l := left.(type) {
 	case string:
 		if r, ok := right.(string); ok {
-			return l <= r, nil
+			return &result{value: l < r}
 		}
 	}
-	return nil, fmt.Errorf("cannot compare %T with %T", left, right)
+	return &result{err: fmt.Errorf("cannot compare %T with %T", left, right)}
+}
+
+func (e *Evaluator) lessEqual(left, right interface{}) EvaluationResult {
+	if areNumbers(left, right) {
+		leftNum, _ := toFloat64(left)
+		rightNum, _ := toFloat64(right)
+		return &result{value: leftNum <= rightNum}
+	}
+	switch l := left.(type) {
+	case string:
+		if r, ok := right.(string); ok {
+			return &result{value: l <= r}
+		}
+	}
+	return &result{err: fmt.Errorf("cannot compare %T with %T", left, right)}
 }
 
 func (i *Evaluator) isEqual(a, b interface{}) bool {
@@ -233,107 +236,109 @@ func (i *Evaluator) isEqual(a, b interface{}) bool {
 func (i *Evaluator) visitParseErrorExpr(
 	ctx context.Context,
 	expr *ParseError,
-) (interface{}, error) {
+) EvaluationResult {
 	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+		return &result{err: EvaluationCancelledErrror}
 	}
-	return nil, fmt.Errorf("parse error: %s", expr.Error())
+	return &result{err: fmt.Errorf("parse error: %w", expr)}
 }
 
-func (i *Evaluator) visitGroupingExpr(ctx context.Context, expr *Grouping) (interface{}, error) {
+func (i *Evaluator) visitGroupingExpr(ctx context.Context, expr *Grouping) EvaluationResult {
 	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+		return &result{err: EvaluationCancelledErrror}
 	}
 	return i.interpret(ctx, expr.expression)
 }
 
-func (i *Evaluator) visitLiteralExpr(ctx context.Context, expr *Literal) (interface{}, error) {
+func (i *Evaluator) visitLiteralExpr(ctx context.Context, expr *Literal) EvaluationResult {
 	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+		return &result{err: EvaluationCancelledErrror}
 	}
-	return expr.value, nil
+	return &result{value: expr.value}
 }
 
-func (i *Evaluator) visitUnaryExpr(ctx context.Context, expr *Unary) (interface{}, error) {
+func (i *Evaluator) visitUnaryExpr(ctx context.Context, expr *Unary) EvaluationResult {
 	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+		return &result{err: EvaluationCancelledErrror}
 	}
-	right, err := i.interpret(ctx, expr.right)
-	if err != nil {
-		return nil, err
+	res := i.interpret(ctx, expr.right)
+	if res.Error() != nil {
+		return res
 	}
+	right := res.Get()
 	switch expr.operator.tokenType {
 	case MINUS:
-		return -(right.(float64)), nil
+		return &result{value: -(right.(float64))} // TODO: handle other numeric types
 	case BANG:
-		return !(i.isTruthy(right)), nil
+		return &result{value: !(i.isTruthy(right))}
 	}
-	return nil, nil
+	return &result{}
 }
 
-func (i *Evaluator) visitTemplateExpr(ctx context.Context, expr *Template) (interface{}, error) {
+func (i *Evaluator) visitTemplateExpr(ctx context.Context, expr *Template) EvaluationResult {
 	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+		return &result{err: EvaluationCancelledErrror}
 	}
 	evaluations := make([]interface{}, 0)
 	for _, e := range expr.expressions {
-		ev, err := i.interpret(ctx, e)
-		if err != nil {
-			return nil, err
+		res := i.interpret(ctx, e)
+		if res.Error() != nil {
+			return res
 		}
-		evaluations = append(evaluations, ev)
+		evaluations = append(evaluations, res.Get())
 	}
 	if len(evaluations) == 1 {
-		return evaluations[0], nil
+		return &result{value: evaluations[0]}
 	}
 
 	str := strings.Builder{}
 	for _, e := range evaluations {
 		str.WriteString(fmt.Sprintf("%v", e))
 	}
-	return str.String(), nil
+	return &result{value: str.String()}
 }
 
-func (i *Evaluator) visitTernaryExpr(ctx context.Context, expr *Ternary) (interface{}, error) {
+func (i *Evaluator) visitTernaryExpr(ctx context.Context, expr *Ternary) EvaluationResult {
 	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+		return &result{err: EvaluationCancelledErrror}
 	}
-	condition, err := i.interpret(ctx, expr.condition)
-	if err != nil {
-		return nil, err
+	res := i.interpret(ctx, expr.condition)
+	if res.Error() != nil {
+		return res
 	}
-	if i.isTruthy(condition) {
+	if i.isTruthy(res.Get()) {
 		return i.interpret(ctx, expr.trueExpr)
 	}
 	return i.interpret(ctx, expr.falseExpr)
 }
 
-func (i *Evaluator) visitVariableExpr(ctx context.Context, expr *Variable) (interface{}, error) {
+func (i *Evaluator) visitVariableExpr(ctx context.Context, expr *Variable) EvaluationResult {
 	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+		return &result{err: EvaluationCancelledErrror}
 	}
 	if member, ok := i.members[expr.name.lexeme]; ok {
-		return member, nil
+		return &result{value: member}
 	}
-	return nil, nil
+	return &result{}
 }
 
-func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, error) {
+func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) EvaluationResult {
 	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+		return &result{err: EvaluationCancelledErrror}
 	}
 	if expr.object == nil {
-		return nil, fmt.Errorf("object is nil")
+		return &result{err: fmt.Errorf("object is nil")}
 	}
-	obj, err := i.interpret(ctx, expr.object)
-	if err != nil {
-		return nil, err
+	res := i.interpret(ctx, expr.object)
+	if res.Error() != nil {
+		return res
 	}
+	obj := res.Get()
 	if obj == nil {
 		if expr.getType.tokenType == OPTIONALCHAIN {
-			return nil, nil
+			return &result{}
 		}
-		return nil, fmt.Errorf("cannot get property '%s' of nil", expr.name.lexeme)
+		return &result{err: fmt.Errorf("cannot get property '%s' of nil", expr.name.lexeme)}
 	}
 
 	value := reflect.ValueOf(obj) // hack for pointer receivers
@@ -342,42 +347,44 @@ func (i *Evaluator) visitGetExpr(ctx context.Context, expr *Get) (interface{}, e
 	case reflect.Map:
 		key := reflect.ValueOf(expr.name.lexeme)
 		if value.MapIndex(key).IsValid() {
-			return value.MapIndex(key).Interface(), nil
+			return &result{value: value.MapIndex(key).Interface()}
 		}
-		return nil, nil // TODO: return error?
+		return &result{} // TODO: return error?
 	case reflect.Struct, reflect.Ptr:
 		if field, ok := getFieldFromStructOrPointer(value, expr.name.lexeme); ok {
-			return field, nil
+			return &result{value: field}
 		}
 		if method, ok := getMethodFromStructOrPointer(value, expr.name.lexeme); ok {
-			return method, nil
+			return &result{value: method}
 		}
-		return nil, nil // TODO: return error?
+		return &result{} // TODO: return error?
 	case reflect.Slice, reflect.Array, reflect.String:
 		if expr.name.lexeme == "length" {
-			return float64(value.Len()), nil
+			return &result{value: float64(value.Len())}
 		}
-		return nil, fmt.Errorf("property '%s' does not exist", expr.name.lexeme)
+		return &result{err: fmt.Errorf("property '%s' does not exist", expr.name.lexeme)}
 	default:
-		return nil, fmt.Errorf("cannot get property '%s' of type %T", expr.name.lexeme, obj)
+		return &result{err: fmt.Errorf("cannot get property '%s' of type %T", expr.name.lexeme, obj)}
 	}
 }
 
-func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) (interface{}, error) {
+func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) EvaluationResult {
 	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+		return &result{err: EvaluationCancelledErrror}
 	}
-	obj, err := i.interpret(ctx, expr.object)
-	if err != nil {
-		return nil, err
+	res := i.interpret(ctx, expr.object)
+	if res.Error() != nil {
+		return res
 	}
-	indexValue, err := i.interpret(ctx, expr.index)
-	if err != nil {
-		return nil, err
+	obj := res.Get()
+	res = i.interpret(ctx, expr.index)
+	if res.Error() != nil {
+		return res
 	}
+	indexValue := res.Get()
 
 	if obj == nil {
-		return nil, fmt.Errorf("cannot index into nil")
+		return &result{err: fmt.Errorf("cannot index into nil")}
 	}
 
 	value := reflect.ValueOf(obj)
@@ -386,73 +393,74 @@ func (i *Evaluator) visitIndexExpr(ctx context.Context, expr *Index) (interface{
 	case reflect.Map:
 		key := reflect.ValueOf(indexValue)
 		if value.MapIndex(key).IsValid() {
-			return value.MapIndex(key).Interface(), nil
+			return &result{value: value.MapIndex(key).Interface()}
 		}
-		return nil, nil // TODO: return error?
+		return &result{} // TODO: return error?
 	case reflect.Struct, reflect.Ptr:
 		key, ok := indexValue.(string)
 		if !ok {
-			return nil, fmt.Errorf("property '%s' does not exist", indexValue)
+			return &result{err: fmt.Errorf("property '%s' does not exist", indexValue)}
 		}
 		if field, ok := getFieldFromStructOrPointer(value, key); ok {
-			return field, nil
+			return &result{value: field}
 		}
 		if method, ok := getMethodFromStructOrPointer(value, key); ok {
-			return method, nil
+			return &result{value: method}
 		}
 
-		return nil, nil // TODO: return error?
+		return &result{} // TODO: return error?
 	case reflect.Slice, reflect.Array, reflect.String:
 		indexFloat, ok := indexValue.(float64)
 		if !ok {
-			return nil, fmt.Errorf("index '%v' is not an integer", indexValue)
+			return &result{err: fmt.Errorf("index '%v' is not an integer", indexValue)}
 		}
 		index := int(indexFloat)
 		if index < 0 || index >= value.Len() {
-			return nil, fmt.Errorf("index '%v' is out of bounds", indexValue)
+			return &result{err: fmt.Errorf("index '%v' is out of bounds", indexValue)}
 		}
-		return value.Index(index).Interface(), nil
+		return &result{value: value.Index(index).Interface()}
 	default:
-		return nil, fmt.Errorf("cannot index into type %T", obj)
+		return &result{err: fmt.Errorf("cannot index into type %T", obj)}
 	}
 }
 
-func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) (interface{}, error) {
+func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) EvaluationResult {
 	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+		return &result{err: EvaluationCancelledErrror}
 	}
 	args := make([]interface{}, 0)
 	for _, a := range expr.arguments {
-		arg, err := e.interpret(ctx, a)
-		if err != nil {
-			return nil, err
+		res := e.interpret(ctx, a)
+		if res.Error() != nil {
+			return res
 		}
-		args = append(args, arg)
+		args = append(args, res.Get())
 	}
-	callee, err := e.interpret(ctx, expr.callee)
-	if err != nil {
-		return nil, err
+	calleeRes := e.interpret(ctx, expr.callee)
+	if calleeRes.Error() != nil {
+		return calleeRes
 	}
+	callee := calleeRes.Get()
 	fn := reflect.ValueOf(callee)
 	if fn.Kind() != reflect.Func {
-		return nil, NewEvaluationError(
+		return &result{err: NewEvaluationError(
 			"cannot call non-function '%s' of type %T",
 			identifyCallee(expr),
 			callee,
-		)
+		)}
 	}
 	if fn.Type().NumOut() > 2 {
-		return nil, NewEvaluationError(
+		return &result{err: NewEvaluationError(
 			"function '%s' returns more than 2 values",
 			identifyCallee(expr),
-		)
+		)}
 	}
 	if fn.Type().NumOut() == 2 {
 		if fn.Type().Out(1) != reflect.TypeOf((*error)(nil)).Elem() {
-			return nil, NewEvaluationError(
+			return &result{err: NewEvaluationError(
 				"function '%s' second return value must be of type error",
 				identifyCallee(expr),
-			)
+			)}
 		}
 	}
 
@@ -464,12 +472,12 @@ func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) (interface{},
 		argIndex = 1
 	}
 	if !isVariadic && fn.Type().NumIn() != (len(args)+argIndex) {
-		return nil, NewEvaluationError(
+		return &result{err: NewEvaluationError(
 			"function '%s' expects %d arguments, got %d",
 			identifyCallee(expr),
 			fn.Type().NumIn(),
 			len(args),
-		)
+		)}
 	}
 
 	variadicIndex := fn.Type().NumIn() - 1
@@ -480,11 +488,11 @@ func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) (interface{},
 			paramType := varsType.Elem()
 			for _, a := range args[i:] {
 				if !reflect.TypeOf(a).AssignableTo(paramType) {
-					return nil, NewEvaluationError(
+					return &result{err: NewEvaluationError(
 						"variadic argument '%v' is not assignable to type '%s'",
 						arg,
 						paramType.String(),
-					)
+					)}
 				}
 				in = append(in, reflect.ValueOf(a))
 			}
@@ -498,11 +506,11 @@ func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) (interface{},
 			if argValue.Type().ConvertibleTo(paramType) {
 				argValue = argValue.Convert(paramType)
 			} else {
-				return nil, NewEvaluationError(
+				return &result{err: NewEvaluationError(
 					"argument '%v' is not assignable to parameter '%s'",
 					arg,
 					paramType.String(),
-				)
+				)}
 			}
 		}
 
@@ -512,57 +520,60 @@ func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) (interface{},
 	out := fn.Call(in)
 	if len(out) == 2 {
 		if out[1].Interface() != nil {
-			return nil, out[1].Interface().(error)
+			return &result{err: out[1].Interface().(error)}
 		}
 	}
-	return out[0].Interface(), nil
+	return &result{value: out[0].Interface()}
 }
-func (i *Evaluator) visitArrayExpr(ctx context.Context, expr *Array) (interface{}, error) {
+func (i *Evaluator) visitArrayExpr(ctx context.Context, expr *Array) EvaluationResult {
 	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+		return &result{err: EvaluationCancelledErrror}
 	}
 	values := make([]interface{}, len(expr.values))
 	for index, v := range expr.values {
-		value, err := i.interpret(ctx, v)
-		if err != nil {
-			return nil, err
+		res := i.interpret(ctx, v)
+		if res.Error() != nil {
+			return res
 		}
-		values[index] = value
+		values[index] = res.Get()
 	}
-	return values, nil
+	return &result{value: values}
 }
 
-func (i *Evaluator) visitMapExpr(ctx context.Context, expr *Map) (interface{}, error) {
+func (i *Evaluator) visitMapExpr(ctx context.Context, expr *Map) EvaluationResult {
 	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+		return &result{err: EvaluationCancelledErrror}
 	}
 	m := make(map[string]interface{})
 	for _, e := range expr.entries {
-		entry, err := i.interpret(ctx, e)
-		if err != nil {
-			return nil, err
+		var entry [2]interface{}
+		res := i.interpret(ctx, e)
+		if res.Error() != nil {
+			return res
 		}
-		key := entry.([2]interface{})[0]
-		value := entry.([2]interface{})[1]
+		entry = res.Get().([2]interface{})
+		key := entry[0]
+		value := entry[1]
 		m[fmt.Sprintf("%v", key)] = value
 	}
-	return m, nil
+	return &result{value: m}
 }
 
-func (i *Evaluator) visitMapEntryExpr(ctx context.Context, expr *MapEntry) (interface{}, error) {
+func (i *Evaluator) visitMapEntryExpr(ctx context.Context, expr *MapEntry) EvaluationResult {
 	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+		return &result{err: EvaluationCancelledErrror}
 	}
-	key, err := i.interpret(ctx, expr.key)
-	if err != nil {
-		return nil, err
+	keyRes := i.interpret(ctx, expr.key)
+	if keyRes.Error() != nil {
+		return keyRes
 	}
-	value, err := i.interpret(ctx, expr.value)
-	if err != nil {
-		return nil, err
+	valueRes := i.interpret(ctx, expr.value)
+	if valueRes.Error() != nil {
+		return valueRes
 	}
-	return [2]interface{}{key, value}, nil
+	return &result{value: [2]interface{}{keyRes.Get(), valueRes.Get()}}
 }
+
 func identifyCallee(expr *Call) string {
 	switch callee := expr.callee.(type) {
 	case *Variable:
@@ -692,10 +703,10 @@ func (i *Evaluator) Evaluate(ctx context.Context, expr Expr) (interface{}, error
 			}
 			close(done)
 		}()
-		obj, e := i.interpret(ctx, expr)
+		r := i.interpret(ctx, expr)
 		once.Do(func() {
-			result = obj
-			err = e
+			result = r.Get()
+			err = r.Error()
 		})
 	}()
 
@@ -707,9 +718,9 @@ func (i *Evaluator) Evaluate(ctx context.Context, expr Expr) (interface{}, error
 	}
 }
 
-func (i *Evaluator) interpret(ctx context.Context, expr Expr) (interface{}, error) {
+func (i *Evaluator) interpret(ctx context.Context, expr Expr) EvaluationResult {
 	if ctx.Err() != nil {
-		return nil, EvaluationCancelledErrror
+		return &result{err: EvaluationCancelledErrror}
 	}
 	return expr.Accept(ctx, i)
 }

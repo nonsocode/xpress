@@ -84,7 +84,7 @@ func NewBinary(left Expr, operator Token, right Expr) *Binary {
 	return &Binary{left: left, operator: operator, right: right}
 }
 
-func (b *Binary) Accept(ctx context.Context, v Visitor) (interface{}, error) {
+func (b *Binary) Accept(ctx context.Context, v Visitor) EvaluationResult {
 	return v.visitBinaryExpr(ctx, b)
 }
 
@@ -92,7 +92,7 @@ func NewGrouping(expression Expr) *Grouping {
 	return &Grouping{expression: expression}
 }
 
-func (g *Grouping) Accept(ctx context.Context, v Visitor) (interface{}, error) {
+func (g *Grouping) Accept(ctx context.Context, v Visitor) EvaluationResult {
 	return v.visitGroupingExpr(ctx, g)
 }
 
@@ -100,7 +100,7 @@ func NewLiteral(value interface{}, raw string) *Literal {
 	return &Literal{value: value, raw: raw}
 }
 
-func (l *Literal) Accept(ctx context.Context, v Visitor) (interface{}, error) {
+func (l *Literal) Accept(ctx context.Context, v Visitor) EvaluationResult {
 	return v.visitLiteralExpr(ctx, l)
 }
 
@@ -108,7 +108,7 @@ func NewUnary(operator Token, right Expr) *Unary {
 	return &Unary{operator: operator, right: right}
 }
 
-func (u *Unary) Accept(ctx context.Context, v Visitor) (interface{}, error) {
+func (u *Unary) Accept(ctx context.Context, v Visitor) EvaluationResult {
 	return v.visitUnaryExpr(ctx, u)
 }
 
@@ -116,7 +116,7 @@ func NewTemplate(expressions []Expr) *Template {
 	return &Template{expressions: expressions}
 }
 
-func (t *Template) Accept(ctx context.Context, v Visitor) (interface{}, error) {
+func (t *Template) Accept(ctx context.Context, v Visitor) EvaluationResult {
 	return v.visitTemplateExpr(ctx, t)
 }
 
@@ -124,7 +124,7 @@ func NewTernary(condition Expr, trueExpr Expr, falseExpr Expr) *Ternary {
 	return &Ternary{condition: condition, trueExpr: trueExpr, falseExpr: falseExpr}
 }
 
-func (t *Ternary) Accept(ctx context.Context, v Visitor) (interface{}, error) {
+func (t *Ternary) Accept(ctx context.Context, v Visitor) EvaluationResult {
 	return v.visitTernaryExpr(ctx, t)
 }
 
@@ -132,7 +132,7 @@ func NewGet(object Expr, getType, name Token) *Get {
 	return &Get{object: object, getType: getType, name: name}
 }
 
-func (g *Get) Accept(ctx context.Context, v Visitor) (interface{}, error) {
+func (g *Get) Accept(ctx context.Context, v Visitor) EvaluationResult {
 	return v.visitGetExpr(ctx, g)
 }
 
@@ -140,7 +140,7 @@ func NewCall(callee Expr, arguments []Expr) *Call {
 	return &Call{callee: callee, arguments: arguments}
 }
 
-func (c *Call) Accept(ctx context.Context, v Visitor) (interface{}, error) {
+func (c *Call) Accept(ctx context.Context, v Visitor) EvaluationResult {
 	return v.visitCallExpr(ctx, c)
 }
 
@@ -148,7 +148,7 @@ func NewIndex(object Expr, index Expr) *Index {
 	return &Index{object: object, index: index}
 }
 
-func (i *Index) Accept(ctx context.Context, v Visitor) (interface{}, error) {
+func (i *Index) Accept(ctx context.Context, v Visitor) EvaluationResult {
 	return v.visitIndexExpr(ctx, i)
 }
 
@@ -156,7 +156,7 @@ func NewArray(values []Expr) *Array {
 	return &Array{values: values}
 }
 
-func (a *Array) Accept(ctx context.Context, v Visitor) (interface{}, error) {
+func (a *Array) Accept(ctx context.Context, v Visitor) EvaluationResult {
 	return v.visitArrayExpr(ctx, a)
 }
 
@@ -164,7 +164,7 @@ func NewVariable(name Token) *Variable {
 	return &Variable{name: name}
 }
 
-func (v *Variable) Accept(ctx context.Context, vis Visitor) (interface{}, error) {
+func (v *Variable) Accept(ctx context.Context, vis Visitor) EvaluationResult {
 	return vis.visitVariableExpr(ctx, v)
 }
 
@@ -172,7 +172,7 @@ func (pe *ParseError) Error() string {
 	return fmt.Sprintf("Error at position %d. %s", pe.token.start, pe.message)
 }
 
-func (p *ParseError) Accept(ctx context.Context, v Visitor) (interface{}, error) {
+func (p *ParseError) Accept(ctx context.Context, v Visitor) EvaluationResult {
 	return v.visitParseErrorExpr(ctx, p)
 }
 
@@ -180,7 +180,7 @@ func NewMap(entries []*MapEntry) *Map {
 	return &Map{entries: entries}
 }
 
-func (m *Map) Accept(ctx context.Context, v Visitor) (interface{}, error) {
+func (m *Map) Accept(ctx context.Context, v Visitor) EvaluationResult {
 	return v.visitMapExpr(ctx, m)
 }
 
@@ -188,6 +188,6 @@ func NewMapEntry(key Expr, value Expr) *MapEntry {
 	return &MapEntry{key: key, value: value}
 }
 
-func (me *MapEntry) Accept(ctx context.Context, v Visitor) (interface{}, error) {
+func (me *MapEntry) Accept(ctx context.Context, v Visitor) EvaluationResult {
 	return v.visitMapEntryExpr(ctx, me)
 }

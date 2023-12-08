@@ -133,7 +133,7 @@ var cases = []SuccessCases{
 			a: concat("Hello ", "World"), 
 		  "nested": {
 				b: {c: {d: "this is d"}},
-				someArray: [1,2, "hello".length + 1],
+				someArray: [1, 2, "hello".length + 1],
 				"stringKey": 87,
 				[someObject.nested.key1]: "this is a value",
 				[getDeepObject().deep.object.with.values[0]]: "this is another value"
@@ -179,11 +179,10 @@ func (d Dummy) StructReceiverMethod() string {
 func TestOptionalChaining(t *testing.T) {
 	// evaluator := NewInterpreter()
 	// evaluator.timeout = 5 * time.Hour
-	// ast := NewParser("@{{ some?.nested.thing().g }}").Parse()
+	// ast := NewParser("@{{ a?.b.c[one.two.three] }}").Parse()
 	// res, err := (&JSONPrinter{}).Print(ast)
 	// assert.Nil(t, err)
 	// assert.Equal(t, nil, res)
-
 }
 func TestExampleParser(t *testing.T) {
 	evaluator := NewInterpreter()

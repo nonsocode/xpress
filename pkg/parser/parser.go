@@ -8,7 +8,7 @@ import (
 
 type (
 	Expr interface {
-		Accept(context.Context, Visitor) (interface{}, error)
+		Accept(context.Context, Visitor) EvaluationResult
 	}
 )
 
