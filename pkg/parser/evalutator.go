@@ -736,7 +736,7 @@ func (i *Evaluator) Evaluate(ctx context.Context, expr Expr) (interface{}, error
 	case <-done:
 		return result, err
 	case <-ctx.Done():
-		return nil, NewEvaluationError("evaluation timed out after %s", i.timeout.String())
+		return nil, NewEvaluationError("evaluation canceled: %s", ctx.Err().Error())
 	}
 }
 
