@@ -27,6 +27,9 @@ type (
 	Interpreter interface {
 		Evaluate(expr Expr) EvaluationResult
 	}
+	Expr interface {
+		Accept(context.Context, Visitor) EvaluationResult
+	}
 
 	EvaluationResult interface {
 		Get() interface{}
@@ -44,7 +47,6 @@ type (
 )
 
 var (
-	_ EvaluationResult = &optionalEvaluationResult{}
 	_ EvaluationResult = &result{}
 )
 

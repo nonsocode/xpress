@@ -1,15 +1,8 @@
 package parser
 
 import (
-	"context"
 	"fmt"
 	"strconv"
-)
-
-type (
-	Expr interface {
-		Accept(context.Context, Visitor) EvaluationResult
-	}
 )
 
 func NewParser(source string) *Parser {
