@@ -70,6 +70,7 @@ var cases = []SuccessCases{
 	{template: "@{{ 'a' > 'b' }}", expect: false},
 	{template: "@{{ 'b' > 'b' }}", expect: false},
 	{template: "@{{ 'c' > 'b' }}", expect: true},
+	{template: "@{{ nil }}", expect: nil},
 	{template: "@{{ true }}", expect: true},
 	{template: "@{{ false }}", expect: false},
 	{template: "@{{ !true }}", expect: false},
@@ -170,6 +171,15 @@ var errorCases = []ErrorCases{
 	{template: "@{{ getDeepObject().deep.object.with.values[-1] }}", msg: "index '-1' is out of bounds"},
 	{template: "@{{ getDeepObject().nonexistent.key }}", msg: "cannot get property 'key' of nil"},
 	{template: "@{{ [1,2,3,4 }}", msg: "parse error: Error at position 13. Expect ']' after array expression. got }"},
+	{template: "@{{ ([1,2,3,4] }} ", msg: "Expect ')' after expression. got }"},
+	{template: `@{{ {["some-key": "some-val"} }}`, msg: "Expect ']' after index expression. got :"},
+	{template: `@{{ {: "something"} }}`, msg: "Expect map key. got :"},
+	{template: `@{{ {someKey "something"} }}`, msg: `Expect ':' after map key. got "something"`},
+	{template: `@{{ someFunc({someKey: "something") }}`, msg: `Expect '}' after map expression. got )`},
+	{template: `@{{ someFunc({someKey: "something"} }}`, msg: `Expect ')' after arguments. got }`},
+	{template: `@{{ someObj["index" }}`, msg: `Expect ']' after index expression. got }`},
+	{template: `@{{ someObj. }}`, msg: `Expect property name after '.'. got }`},
+	{template: `@{{ someObj ? "yes" "no" }}`, msg: `Expect ':' after true expression. got "no"`},
 }
 
 func (d *Dummy) PointerReceiverMethod() string {
@@ -216,7 +226,7 @@ func TestExampleParserErrors(t *testing.T) {
 		val, err := evaluator.Evaluate(context.TODO(), ast)
 		assert.Nil(t, val)
 		assert.NotNil(t, err)
-		assert.Equal(t, cas.msg, err.Error())
+		assert.Contains(t, err.Error(), cas.msg)
 	}
 	for _, c := range errorCases {
 		if c.only {

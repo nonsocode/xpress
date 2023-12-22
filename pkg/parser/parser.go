@@ -18,7 +18,7 @@ func (p *Parser) Parse() (exp Expr) {
 				exp = err
 			} else {
 				exp = &ParseError{
-					message: fmt.Sprintf("%v", r),
+					message: fmt.Sprintf("%+v", r),
 					token:   p.peek(),
 				}
 			}
@@ -113,13 +113,7 @@ func (p *Parser) logicalAnd() Expr {
 // Grammar:
 // equality  → comparison ( ( BANG_EQUAL | EQUAL_EQUAL ) comparison )* ;
 func (p *Parser) equality() Expr {
-	expr := p.comparison()
-	for p.match(BANG_EQUAL, EQUAL_EQUAL) {
-		operator := p.previous()
-		right := p.comparison()
-		expr = NewBinary(expr, operator, right)
-	}
-	return expr
+	return p.comparison()
 }
 
 // Grammar:
@@ -197,12 +191,6 @@ func (p *Parser) get(expr Expr) Expr {
 		p.error(fmt.Sprintf("Expect property name after '%s'. got %v", p.previous().lexeme, p.peek().lexeme), p.peek())
 	}
 	return NewGet(expr, p.previous())
-}
-
-// Grammar:
-// optional →  OPTIONALCHAIN ;
-func (p *Parser) optional(expr Expr) Expr {
-	return NewOptional(expr)
 }
 
 // Grammar:
@@ -323,12 +311,10 @@ func (p *Parser) mapEntry() *MapEntry {
 	var key Expr
 	if p.match(IDENTIFIER) {
 		key = NewLiteral(p.previous().lexeme, p.previous().lexeme)
-	}
-	if p.match(STRING) {
+	} else if p.match(STRING) {
 		str := p.previous().lexeme
 		key = NewLiteral(str[1:len(str)-1], str)
-	}
-	if p.match(LEFT_BRACKET) {
+	} else if p.match(LEFT_BRACKET) {
 		key = p.expression()
 		if ok := p.consume(RIGHT_BRACKET); !ok {
 			p.error(
