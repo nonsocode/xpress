@@ -89,14 +89,6 @@ type (
 	stateFn func(*Lexer) stateFn
 )
 
-func (t Token) String() string {
-	return fmt.Sprintf("%v %v %v", t.tokenType, t.lexeme, t.line)
-}
-
-func (t TokenType) String() string {
-	return tokenMap[t]
-}
-
 func NewLexer(source string) *Lexer {
 	return &Lexer{
 		source:    source,
