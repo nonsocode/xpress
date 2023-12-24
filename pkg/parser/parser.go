@@ -127,10 +127,10 @@ func (p *Parser) comparison() Expr {
 }
 
 // Grammar:
-// term  → factor ( ( MINUS | PLUS ) factor )* ;
+// term  → factor ( ( MINUS | PLUS | NULLCOALESCING) factor )* ;
 func (p *Parser) term() Expr {
 	expr := p.factor()
-	for p.match(MINUS, PLUS) {
+	for p.match(MINUS, PLUS, NULLCOALESCING) {
 		expr = NewBinary(expr, p.previous(), p.factor())
 	}
 	return expr

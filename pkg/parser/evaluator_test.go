@@ -78,6 +78,8 @@ var cases = []SuccessCases{
 	{template: "@{{ true && true}}", expect: true},
 	{template: "@{{ true && false}}", expect: false},
 	{template: "@{{ false && false}}", expect: false},
+	{template: "@{{ false ?? 6}}", expect: float64(6)},
+	{template: "@{{ 5 ?? dsfsd.fsdf.f}}", expect: float64(5)},
 	{template: "@{{ true || true}}", expect: true},
 	{template: "@{{ true || false}}", expect: true},
 	{template: "@{{ false || false}}", expect: false},
@@ -166,7 +168,7 @@ var errorCases = []ErrorCases{
 	{template: "@{{ 5 6 }}", msg: "parse error: Error at position 6. Expect '}}' after expression. got 6"},
 	{template: "@{{ nonexistentFunction() }}", msg: "cannot call non-function 'nonexistentFunction' of type <nil>"},
 	{template: "@{{ waitMs(10) }}", msg: "evaluation canceled: context deadline exceeded"},
-	{template: "@{{ longLoopWithContext() }}", msg: "evaluation canceled: context deadline exceeded"},
+	{template: "@{{ waitCtx(10) }}", msg: "evaluation canceled: context deadline exceeded"},
 	{template: "@{{ getDeepObject().deep.object.with.values[3] }}", msg: "index '3' is out of bounds"},
 	{template: "@{{ getDeepObject().deep.object.with.values[-1] }}", msg: "index '-1' is out of bounds"},
 	{template: "@{{ getDeepObject().nonexistent.key }}", msg: "cannot get property 'key' of nil"},
@@ -180,6 +182,12 @@ var errorCases = []ErrorCases{
 	{template: `@{{ someObj["index" }}`, msg: `Expect ']' after index expression. got }`},
 	{template: `@{{ someObj. }}`, msg: `Expect property name after '.'. got }`},
 	{template: `@{{ someObj ? "yes" "no" }}`, msg: `Expect ':' after true expression. got "no"`},
+	{template: `@{{ concat(6) }}`, msg: `argument '6' is not assignable to type 'string'`},
+	{template: `@{{ math.min(6, "5") }}`, msg: `argument '5' is not assignable to parameter 'float64'`},
+	{template: `@{{ math.min(6, 7,8) }}`, msg: `function 'min' expects 2 arguments, got 3`},
+	{template: `@{{ wrongReturn() }}`, msg: `function 'wrongReturn' second return value must be of type error`},
+	{template: `@{{ wrongReturnLength() }}`, msg: `function 'wrongReturnLength' returns more than 2 values`},
+	{template: `@{{ errorFunc() }}`, msg: `this is an error`},
 }
 
 func (d *Dummy) PointerReceiverMethod() string {
@@ -290,23 +298,8 @@ func createTestTemplateFunctions() map[string]interface{} {
 		"pointerDummy": &Dummy{},
 		"dummy":        Dummy{},
 		"math": map[string]interface{}{
-			"abs":   math.Abs,
-			"acos":  math.Acos,
-			"asin":  math.Asin,
-			"atan":  math.Atan,
-			"atan2": math.Atan2,
-			"ceil":  math.Ceil,
-			"cos":   math.Cos,
-			"exp":   math.Exp,
-			"floor": math.Floor,
-			"log":   math.Log,
-			"log10": math.Log10,
-			"max":   math.Max,
-			"min":   math.Min,
-			"pow":   math.Pow,
-			"sin":   math.Sin,
-			"sqrt":  math.Sqrt,
-			"tan":   math.Tan,
+			"abs": math.Abs,
+			"min": math.Min,
 		},
 		"concat": func(ctx context.Context, args ...string) (interface{}, error) {
 			builder := strings.Builder{}
@@ -326,47 +319,26 @@ func createTestTemplateFunctions() map[string]interface{} {
 				},
 			}, nil
 		},
-		"deepObject": map[string]interface{}{
-			"deep": map[string]interface{}{
-				"object": map[string]interface{}{
-					"with": map[string]interface{}{
-						"values": []interface{}{3, 2, 1},
-					},
-				},
-			},
-		},
 		"waitMs": func(msec int) bool {
 			time.Sleep(time.Duration(msec) * time.Millisecond)
 			return true
 		},
-		"longLoop": func() (bool, error) {
-			var count int
-			for {
-				count++
-				fmt.Println(count, "longLoop")
-				time.Sleep(1 * time.Second)
-				if count > 10 {
-					break
-				}
+		"waitCtx": func(ctx context.Context, msec int) bool {
+			select {
+			case <-ctx.Done():
+				return false
+			case <-time.After(time.Duration(msec) * time.Millisecond):
+				return true
 			}
-
-			return true, fmt.Errorf("should not get here")
 		},
-		"longLoopWithContext": func(ctx context.Context) (bool, error) {
-			var count int
-			for {
-				count++
-				time.Sleep(1 * time.Second)
-				if count > 2 {
-					break
-				}
-				select {
-				case <-ctx.Done():
-					return false, ctx.Err()
-				default:
-				}
-			}
-			return true, nil
+		"wrongReturn": func() (string, bool) {
+			return "a", true
+		},
+		"wrongReturnLength": func() (string, string, error) {
+			return "a", "b", nil
+		},
+		"errorFunc": func() (interface{}, error) {
+			return nil, fmt.Errorf("this is an error")
 		},
 		"someFunc": func() any {
 			return func(ctx context.Context, stuff string) string {

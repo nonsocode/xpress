@@ -73,6 +73,22 @@ func (i *Evaluator) visitBinaryExpr(ctx context.Context, expr *Binary) Evaluatio
 		return res
 	}
 	left := res.Get()
+
+	switch expr.operator.tokenType {
+	case AND:
+		if !i.isTruthy(left) {
+			return &result{value: false}
+		}
+	case OR:
+		if i.isTruthy(left) {
+			return &result{value: true}
+		}
+	case NULLCOALESCING:
+		if i.isTruthy(left) {
+			return &result{value: left}
+		}
+	}
+
 	res = i.interpret(ctx, expr.right)
 	if res.Error() != nil {
 		return res
@@ -103,6 +119,11 @@ func (i *Evaluator) visitBinaryExpr(ctx context.Context, expr *Binary) Evaluatio
 		return &result{value: i.isTruthy(left) && i.isTruthy(right)}
 	case OR:
 		return &result{value: i.isTruthy(left) || i.isTruthy(right)}
+	case NULLCOALESCING:
+		if i.isTruthy(left) {
+			return &result{value: left}
+		}
+		return &result{value: right}
 	}
 	return &result{}
 }
@@ -497,7 +518,7 @@ func (e *Evaluator) visitCallExpr(ctx context.Context, expr *Call) EvaluationRes
 		return &result{err: NewEvaluationError(
 			"function '%s' expects %d arguments, got %d",
 			identifyCallee(expr),
-			fn.Type().NumIn(),
+			fn.Type().NumIn()-argIndex,
 			len(args),
 		)}
 	}

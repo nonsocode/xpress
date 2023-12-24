@@ -292,6 +292,8 @@ func lexInsideAction(l *Lexer) stateFn {
 		case '?':
 			if l.accept(".") {
 				l.addToken(OPTIONALCHAIN)
+			} else if l.accept("?") {
+				l.addToken(NULLCOALESCING)
 			} else {
 				l.addToken(QMARK)
 			}
