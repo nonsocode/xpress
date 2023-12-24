@@ -694,11 +694,7 @@ func getMethodFromStructOrPointer(value reflect.Value, name string) (interface{}
 	if method := value.MethodByName(name); method.IsValid() {
 		return method.Interface(), true
 	}
-	if value.CanAddr() {
-		if method := value.Addr().MethodByName(name); method.IsValid() {
-			return method.Interface(), true
-		}
-	}
+
 	switch value.Kind() {
 	case reflect.Ptr:
 	case reflect.Struct:

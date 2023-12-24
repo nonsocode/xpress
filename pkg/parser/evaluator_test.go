@@ -167,6 +167,8 @@ var errorCases = []ErrorCases{
 	{template: "@{{ 5 ", msg: "parse error: Error at position 6. Expect '}}' after expression. got unclosed action"},
 	{template: "@{{ 5 6 }}", msg: "parse error: Error at position 6. Expect '}}' after expression. got 6"},
 	{template: "@{{ nonexistentFunction() }}", msg: "cannot call non-function 'nonexistentFunction' of type <nil>"},
+	{template: "@{{ nonexistent['key'] }}", msg: "cannot index into nil"},
+	{template: "@{{ ['some', 'string', 'array'].wrong }}", msg: "property 'wrong' does not exist"},
 	{template: "@{{ waitMs(10) }}", msg: "evaluation canceled: context deadline exceeded"},
 	{template: "@{{ waitCtx(10) }}", msg: "evaluation canceled: context deadline exceeded"},
 	{template: "@{{ getDeepObject().deep.object.with.values[3] }}", msg: "index '3' is out of bounds"},
