@@ -1,6 +1,7 @@
 template          → ( valueTemplate | TEXT )* ;
 valueTemplate     → TEMPLATE_START expression TEMPLATE_END ;
-expression        → ternary ;
+expression        → nullCoalescing ;
+nullCoalescing    → ternary ( NULLCOALESCING nullCoalescing )? ;
 ternary           → logicOr ( QMARK expression COLON expression )? ;
 logicOr           → logicAnd ( OR logicAnd )* ;
 logicAnd          → equality ( AND equality )* ;
@@ -23,6 +24,7 @@ string            → (DQUOTE characters? DQUOTE) ;
 characters        → ( escape | char )* ;
 escape            → "\\" char ;
 LETTER            → [a-zA-Z] ;
+NULLCOALESCING    → "??" ;
 DIGIT             → [0-9] ;
 TEMPLATE_START    → "@{{" ;
 TEMPLATE_END      → "}}" ;

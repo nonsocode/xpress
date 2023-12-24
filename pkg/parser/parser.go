@@ -63,9 +63,19 @@ func (p *Parser) text() Expr {
 }
 
 // Grammar:
-// expression  → ternary ;
+// expression  → nullCoalescing ;
 func (p *Parser) expression() Expr {
-	return p.ternary()
+	return p.nullCoalescing()
+}
+
+// Grammar:
+// nullCoalescing → ternary ( NULLCOALESCING ternary )* ;
+func (p *Parser) nullCoalescing() Expr {
+	expr := p.ternary()
+	for p.match(NULLCOALESCING) {
+		expr = NewBinary(expr, p.previous(), p.ternary())
+	}
+	return expr
 }
 
 // Grammar:
@@ -127,10 +137,10 @@ func (p *Parser) comparison() Expr {
 }
 
 // Grammar:
-// term  → factor ( ( MINUS | PLUS | NULLCOALESCING) factor )* ;
+// term  → factor ( ( MINUS | PLUS ) factor )* ;
 func (p *Parser) term() Expr {
 	expr := p.factor()
-	for p.match(MINUS, PLUS, NULLCOALESCING) {
+	for p.match(MINUS, PLUS) {
 		expr = NewBinary(expr, p.previous(), p.factor())
 	}
 	return expr
